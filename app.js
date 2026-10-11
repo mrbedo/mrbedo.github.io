@@ -6,6 +6,7 @@ const current = () => {
 let works = [];
 const artwork = new Map();
 const viewerColors = new Map();
+const galleryTitles = new Map();
 const materialBackgrounds = [
   '#f44336', '#e53935', '#d32f2f', '#c62828', '#b71c1c',
   '#e91e63', '#d81b60', '#c2185b', '#ad1457', '#880e4f',
@@ -38,12 +39,13 @@ function colorLuminance(hexColor) {
 
 function setViewerColor(color) {
   const viewer = $('viewer');
-  const useDarkText = colorLuminance(color) > .179;
-  viewer.style.setProperty('--viewer-color', color);
+  const materialColor = materialBackgrounds.includes(color.toLowerCase()) ? color.toLowerCase() : '#263238';
+  const useDarkText = colorLuminance(materialColor) > .179;
+  viewer.style.setProperty('--viewer-color', materialColor);
   viewer.style.setProperty('--viewer-text-color', useDarkText ? '#000000' : '#ffffff');
   viewer.style.setProperty('--viewer-muted-color', useDarkText ? 'rgb(0 0 0 / 75%)' : 'rgb(255 255 255 / 75%)');
   viewer.style.setProperty('--viewer-subtle-color', useDarkText ? 'rgb(0 0 0 / 55%)' : 'rgb(255 255 255 / 50%)');
-  viewer.style.setProperty('--viewer-bedo-color', colorLuminance(color) > .25 ? '#01579b' : '#81d4fa');
+  viewer.style.setProperty('--viewer-bedo-color', colorLuminance(materialColor) > .25 ? '#01579b' : '#81d4fa');
 }
 
 function rgbToHsl(red, green, blue) {
@@ -173,7 +175,10 @@ function thumbnailBackground(entry) {
 
 async function prepareViewerColors(entries) {
   const colors = await Promise.all(entries.map(thumbnailBackground));
-  entries.forEach((entry, index) => viewerColors.set(entry.name, colors[index]));
+  entries.forEach((entry, index) => {
+    viewerColors.set(entry.name, colors[index]);
+    galleryTitles.get(entry.name)?.style.setProperty('--gallery-title-color', colors[index]);
+  });
   const selectedColor = viewerColors.get(current());
   if (selectedColor) setViewerColor(selectedColor);
 }
@@ -196,6 +201,7 @@ async function loadPlacards(entries) {
 }
 
 function renderGallery() {
+  galleryTitles.clear();
   const galleryTiles = works.map(name => {
     const entry = artwork.get(name);
     const link = document.createElement('a');
@@ -209,6 +215,7 @@ function renderGallery() {
     title.className = 'gallery-title';
     title.textContent = entry.placard.title.replaceAll('\\n', ' ');
     title.setAttribute('aria-hidden', 'true');
+    galleryTitles.set(name, title);
     link.append(img, title);
     return link;
   });
@@ -234,13 +241,11 @@ async function show(name) {
   viewer.style.removeProperty('--viewer-muted-color');
   viewer.style.removeProperty('--viewer-subtle-color');
   viewer.style.removeProperty('--viewer-bedo-color');
+  const preparedColor = viewerColors.get(name);
+  if (preparedColor) setViewerColor(preparedColor);
   image.onload = () => {
     if (current() !== name) return;
-    const preparedColor = viewerColors.get(name);
-    if (preparedColor) {
-      setViewerColor(preparedColor);
-      return;
-    }
+    if (preparedColor) return;
     try {
       setViewerColor(artworkBackground(image));
     } catch (error) {
