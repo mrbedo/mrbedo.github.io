@@ -122,23 +122,16 @@ async function prepareViewerColors(entries) {
   if (selectedColor) $('viewer').style.setProperty('--viewer-color', selectedColor);
 }
 
-// Markdown layout: "# Title", then dimensions line, then description paragraphs.
-function parsePlacard(md) {
-  const lines = md.split(/\r?\n/).map(line =>
-    line.replace(/^\s{0,3}#{1,6}\s+(.*?)(?:\s+#+\s*)?$/, '$1')
-  );
-  const nextLine = () => {
-    while (lines.length && !lines[0].trim()) lines.shift();
-    return (lines.shift() || '').trim();
-  };
-  const title = nextLine();
-  const dimensions = nextLine();
-  const description = lines.join('\n').trim().split(/\n\s*\n/).filter(Boolean);
-  return { title, dimensions, description };
+function parsePlacard(text) {
+  const [title = '', subtitle = '', year = ''] = text
+    .split(/\r?\n/)
+    .map(line => line.trim())
+    .filter(Boolean);
+  return { title, subtitle, year };
 }
 
 function renderGallery() {
-  $('gallery').replaceChildren(...works.map(name => {
+  const galleryTiles = works.map(name => {
     const entry = artwork.get(name);
     const link = document.createElement('a');
     const img = document.createElement('img');
@@ -153,23 +146,23 @@ function renderGallery() {
     title.setAttribute('aria-hidden', 'true');
     link.append(img, title);
     return link;
-  }));
+  });
+  $('gallery').replaceChildren(...galleryTiles);
 }
 
-function renderPlacard({ title, dimensions, description }) {
-  $('title').textContent = title;
-  $('dimensions').textContent = dimensions;
-  $('description').replaceChildren(...description.map(text => {
-    const p = document.createElement('p');
-    p.textContent = text;
-    return p;
-  }));
+function renderPlacard({ title, subtitle, year }) {
+  const titleElement = $('title');
+  titleElement.textContent = title.replaceAll('\\n', '\n');
+  titleElement.classList.toggle('wrapped', title.includes('\\n'));
+  $('subtitle').textContent = subtitle;
+  $('year').textContent = year;
 }
 
 async function show(name) {
   const selected = artwork.get(name);
   const viewer = $('viewer');
   const image = $('art');
+  $('gallery-header').hidden = true;
   viewer.hidden = false;
   viewer.style.removeProperty('--viewer-color');
   image.onload = () => {
@@ -195,8 +188,8 @@ async function show(name) {
   };
   image.src = selected.image;
   image.alt = name;
-  renderPlacard({ title: 'Loading artwork details...', dimensions: '', description: [] });
-  $('description').removeAttribute('role');
+  renderPlacard({ title: '', subtitle: '', year: '' });
+  $('title').removeAttribute('role');
   try {
     const res = await fetch(selected.details);
     if (!res.ok) throw new Error(`Could not load ${name} details (${res.status}).`);
@@ -206,11 +199,11 @@ async function show(name) {
     console.error('Failed to load artwork details:', error);
     if (current() !== name) return;
     renderPlacard({
-      title: name,
-      dimensions: '',
-      description: ['Artwork details could not be loaded. Please close and reopen the artwork to try again.']
+      title: 'Artwork details could not be loaded.',
+      subtitle: 'Please close and reopen the artwork to try again.',
+      year: ''
     });
-    $('description').setAttribute('role', 'alert');
+    $('title').setAttribute('role', 'alert');
   }
 }
 
@@ -226,11 +219,15 @@ function step(offset) {
 
 function route() {
   if (works.includes(current())) show(current());
-  else $('viewer').hidden = true;
+  else {
+    $('viewer').hidden = true;
+    $('gallery-header').hidden = false;
+  }
 }
 
 $('prev').onclick = () => step(-1);
 $('next').onclick = () => step(1);
+$('viewer-home').onclick = e => { e.preventDefault(); close(); };
 $('close').onclick = e => { e.preventDefault(); close(); };
 window.addEventListener('hashchange', route);
 document.addEventListener('keydown', e => {

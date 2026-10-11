@@ -5,10 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="robots" content="noai, noimageai">
   <title>Bedoworks</title>
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=20261011-13">
 </head>
 <body>
-  <header>
+  <header id="gallery-header">
     <div class="header-brand">
       <h1 aria-label="Bedoworks"><span>BEDO</span><span>WORKS</span></h1>
       <a class="instagram-link" href="https://www.instagram.com/yourmomspilledpaintintheattic" target="_blank" rel="noopener noreferrer" aria-label="Bedoworks on Instagram">
@@ -23,26 +23,29 @@
   </header>
   <main id="gallery"></main>
   <footer class="copyright">
-    &copy; 2026 Bedoworks. All rights reserved. <a href="LICENSE">License</a>
+    &copy; 2026 Bedoworks. All rights reserved. <a href="about/terms.html">Terms</a>
   </footer>
 
   <section id="viewer" hidden>
+    <a id="viewer-home" class="viewer-brand home-link" href="./" aria-label="Bedoworks home">
+      <h1 aria-label="Bedoworks"><span>BEDO</span><span>WORKS</span></h1>
+    </a>
     <a id="close" href="#" aria-label="Close">&times;</a>
     <button id="prev" aria-label="Previous">&larr;</button>
     <figure>
       <figcaption class="placard">
-        <h2 id="title"></h2>
-        <p id="dimensions"></p>
-        <div id="description"></div>
+        <div id="title"></div>
+        <div id="subtitle"></div>
+        <div id="year"></div>
       </figcaption>
       <img id="art" alt="">
     </figure>
     <button id="next" aria-label="Next">&rarr;</button>
     <footer class="copyright">
-      &copy; 2026 Bedoworks. All rights reserved. <a href="LICENSE">License</a>
+      &copy; 2026 Bedoworks. All rights reserved. <a href="about/terms.html">Terms</a>
     </footer>
   </section>
 
-  <script src="app.js"></script>
+  <script src="app.js?v=20261011-4"></script>
 </body>
 </html>

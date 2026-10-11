@@ -1,3 +1,3 @@
-# Landlord
-## 2026 Oil on Canvas 14” x 11”
-This is a portrait of my dad. Not a glorious one by any means but one where I capture him in the mundane dealings of his side business as a small-time landlord. In my view the celebration of his image is in the hard work he had put in all of those years, often dealing with things most people wouldn’t be able to handle. Having witnessed and in many ways partaken in the trials and tribulation of dealing with bad tenants, this scene hits hard for me that in life there is never free lunch and my dad was a champ at accepting that. It was important for me to get the garbage cans correct given the amount of unjust tickets my dad had to pay to the New York Department of Sanitation.
+Landlord
+Oil on Canvas 14” x 11”
+2026
