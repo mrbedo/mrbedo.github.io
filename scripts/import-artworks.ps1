@@ -98,7 +98,7 @@ else {
     0
 }
 $numberWidth = [Math]::Max(2, $highestNumber.ToString().Length)
-$parsedEntries = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+$parsedEntries = Get-Content -Raw -Encoding UTF8 -LiteralPath $manifestPath | ConvertFrom-Json
 $entries = @()
 foreach ($entry in $parsedEntries) {
     if ($entry -and $entry.PSObject.Properties['name']) {
@@ -134,7 +134,6 @@ foreach ($image in $images) {
 
     $entries += [pscustomobject][ordered]@{
         name = $name
-        title = $title
         image = $relativeImagePath
         thumbnail = "thumbs/${name}_thumb.jpg"
         details = $relativeDetailsPath

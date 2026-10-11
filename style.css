@@ -30,7 +30,7 @@ header {
   min-height: clamp(8rem, 25vw, 20rem);
   margin: 2px;
   padding: 1rem;
-  background: url("src/about/header.jpg") center / cover no-repeat;
+  background: transparent;
   text-align: right;
 }
 #gallery-header[hidden] { display: none; }
@@ -38,7 +38,10 @@ header::before {
   content: "";
   position: absolute;
   inset: 0;
+  background: url("src/about/header.jpg") center / cover no-repeat;
   box-shadow: inset 0 0 6px rgb(0 0 0 / 40%);
+  -webkit-mask-image: linear-gradient(to right, #000 0%, #000 50%, transparent 100%);
+  mask-image: linear-gradient(to right, #000 0%, #000 50%, transparent 100%);
   pointer-events: none;
 }
 .header-brand {
@@ -134,7 +137,9 @@ h1 span:nth-child(2) { color: #ff6e40; }
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: transform .25s ease;
 }
+#gallery a:hover img, #gallery a:focus-visible img { transform: scale(1.025); }
 
 #viewer {
   position: fixed;
@@ -142,6 +147,7 @@ h1 span:nth-child(2) { color: #ff6e40; }
   z-index: 5;
   display: flex;
   align-items: center;
+  color: var(--viewer-text-color, var(--text-color));
   background: var(--viewer-color, var(--base-color));
   transition: background-color .3s ease;
 }
@@ -175,25 +181,25 @@ figure {
     0 0 0 1px rgba(255, 255, 255, .12);
 }
 
-.placard { grid-column: 1; width: 100%; min-width: 0; max-height: 100%; overflow-y: auto; container-type: inline-size; font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; font-size: clamp(.625rem, 4.5cqi, 1rem); line-height: 1.65; text-align: right; overflow-wrap: anywhere; }
+.placard { grid-column: 1; width: 100%; min-width: 0; max-height: 100%; overflow-y: auto; color: #fff; container-type: inline-size; font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif; font-size: clamp(.625rem, 4.5cqi, 1rem); line-height: 1.65; text-align: right; overflow-wrap: anywhere; }
 #title {
   font-size: clamp(1rem, 10cqi, 2.25rem);
   line-height: 1.2;
   white-space: pre-line;
 }
 #title.wrapped { font-size: clamp(.45rem, 6.5cqi, 2rem); }
-#subtitle, #year { color: var(--muted-color); }
+#subtitle, #year { color: rgb(255 255 255 / 75%); }
 
 #viewer button, #close {
   border: 0;
   background: none;
-  color: var(--muted-color);
+  color: rgb(255 255 255 / 65%);
   font-size: 2rem;
   cursor: pointer;
   padding: 1rem;
   text-decoration: none;
 }
-#viewer button:hover, #close:hover { color: var(--text-color); }
+#viewer button:hover, #viewer button:focus-visible, #close:hover, #close:focus-visible { color: #fff; }
 #close { position: absolute; top: 0; right: 0; }
 .viewer-brand {
   position: absolute;
@@ -202,6 +208,7 @@ figure {
   z-index: 2;
 }
 .viewer-brand h1 { font-size: clamp(1.75rem, 5vw, 3.25rem); }
+.viewer-brand h1 span:first-child { color: var(--viewer-bedo-color, #81d4fa); }
 
 .copyright { padding: .75rem 1rem; color: var(--subtle-color); text-align: center; font-size: .75rem; line-height: 1.5; }
 .copyright a { color: inherit; text-underline-offset: .15em; }
@@ -220,7 +227,7 @@ body > .copyright a { pointer-events: auto; }
   bottom: 0;
   left: 0;
   width: 100%;
-  color: var(--subtle-color);
+  color: var(--viewer-subtle-color, var(--subtle-color));
   background: transparent;
 }
 
@@ -241,7 +248,7 @@ body > .copyright a { pointer-events: auto; }
     min-width: 48px;
     min-height: 48px;
     padding: .5rem 1rem;
-    color: var(--muted-color);
+    color: rgb(255 255 255 / 65%);
     background: var(--viewer-color, var(--base-color));
   }
   #prev { left: .25rem; }

@@ -1,91 +1,78 @@
 ﻿[
     {
         "name":  "01_gusto_maina",
-        "title":  "Gusto Maina",
         "image":  "src/01_gusto_maina/01_gusto_maina.jpg",
         "thumbnail":  "thumbs/01_gusto_maina_thumb.jpg",
         "details":  "src/01_gusto_maina/01_gusto_maina.md"
     },
     {
         "name":  "02_montmartre",
-        "title":  "Montmartre Through The Clock Window of MusÃ©e dâ€™Orsay",
         "image":  "src/02_montmartre/02_montmartre.jpg",
         "thumbnail":  "thumbs/02_montmartre_thumb.jpg",
         "details":  "src/02_montmartre/02_montmartre.md"
     },
     {
         "name":  "03_landlord",
-        "title":  "Landlord",
         "image":  "src/03_landlord/03_landlord.jpg",
         "thumbnail":  "thumbs/03_landlord_thumb.jpg",
         "details":  "src/03_landlord/03_landlord.md"
     },
     {
         "name":  "04_on_a_boat",
-        "title":  "Iâ€™m On A Boat",
         "image":  "src/04_on_a_boat/04_on_a_boat.jpg",
         "thumbnail":  "thumbs/04_on_a_boat_thumb.jpg",
         "details":  "src/04_on_a_boat/04_on_a_boat.md"
     },
     {
         "name":  "05_almost",
-        "title":  "Almost",
         "image":  "src/05_almost/05_almost.jpg",
         "thumbnail":  "thumbs/05_almost_thumb.jpg",
         "details":  "src/05_almost/05_almost.md"
     },
     {
         "name":  "05_miller_house",
-        "title":  "The Miller House at 8:26 AM, October 29, 1776",
         "image":  "src/05_miller_house/05_miller_house.jpg",
         "thumbnail":  "thumbs/05_miller_house_thumb.jpg",
         "details":  "src/05_miller_house/05_miller_house.md"
     },
     {
         "name":  "07_birthday_girl",
-        "title":  "Birthday Girl",
         "image":  "src/07_birthday_girl/07_birthday_girl.jpg",
         "thumbnail":  "thumbs/07_birthday_girl_thumb.jpg",
         "details":  "src/07_birthday_girl/07_birthday_girl.md"
     },
     {
         "name":  "08_doing_it",
-        "title":  "I Donâ€™t Know What Iâ€™m Doing But Iâ€™m Doing It",
         "image":  "src/08_doing_it/08_doing_it.JPG",
         "thumbnail":  "thumbs/08_doing_it_thumb.jpg",
         "details":  "src/08_doing_it/08_doing_it.md"
     },
     {
         "name":  "09_two_daughters",
-        "title":  "Two Daughters",
         "image":  "src/09_two_daughters/09_two_daughters.jpg",
         "thumbnail":  "thumbs/09_two_daughters_thumb.jpg",
         "details":  "src/09_two_daughters/09_two_daughters.md"
     },
     {
         "name":  "10_kon_sere",
-        "title":  "Kon SerÃ©",
         "image":  "src/10_kon_sere/10_kon_sere.jpg",
         "thumbnail":  "thumbs/10_kon_sere_thumb.jpg",
         "details":  "src/10_kon_sere/10_kon_sere.md"
     },
     {
         "name":  "11_wave_is_coming",
-        "title":  "A Wave Is Coming And We\u0027re Going To Topple Over!",
         "image":  "src/11_wave_is_coming/11_wave_is_coming.jpg",
         "thumbnail":  "thumbs/11_wave_is_coming_thumb.jpg",
         "details":  "src/11_wave_is_coming/11_wave_is_coming.md"
     },
     {
         "name":  "12_mistakes_were_made",
-        "title":  "Mistakes Were Made",
         "image":  "src/12_mistakes_were_made/12_mistakes_were_made.jpg",
         "thumbnail":  "thumbs/12_mistakes_were_made_thumb.jpg",
         "details":  "src/12_mistakes_were_made/12_mistakes_were_made.md"
     },
     {
         "name":  "13_where_is_my_food",
-        "title":  "Where is my food?",
         "image":  "src/13_where_is_my_food/13_where_is_my_food.jpg",
         "thumbnail":  "thumbs/13_where_is_my_food_thumb.jpg",
         "details":  "src/13_where_is_my_food/13_where_is_my_food.md"

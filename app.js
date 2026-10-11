@@ -6,120 +6,176 @@ const current = () => {
 let works = [];
 const artwork = new Map();
 const viewerColors = new Map();
-const viewerPalette = [
-  { hue: 0, color: '#b71c1c' },
-  { hue: 335, color: '#880e4f' },
-  { hue: 291, color: '#4a148c' },
-  { hue: 251, color: '#311b92' },
-  { hue: 235, color: '#1a237e' },
-  { hue: 212, color: '#0d47a1' },
-  { hue: 199, color: '#01579b' },
-  { hue: 187, color: '#006064' },
-  { hue: 168, color: '#004d40' },
-  { hue: 123, color: '#1b5e20' },
-  { hue: 88, color: '#33691e' },
-  { hue: 60, color: '#33691e' },
-  { hue: 30, color: '#3e2723' },
-  { hue: 14, color: '#bf360c' }
+const materialBackgrounds = [
+  '#f44336', '#e53935', '#d32f2f', '#c62828', '#b71c1c',
+  '#e91e63', '#d81b60', '#c2185b', '#ad1457', '#880e4f',
+  '#9c27b0', '#8e24aa', '#7b1fa2', '#6a1b9a', '#4a148c',
+  '#673ab7', '#5e35b1', '#512da8', '#4527a0', '#311b92',
+  '#3f51b5', '#3949ab', '#303f9f', '#283593', '#1a237e',
+  '#2196f3', '#1e88e5', '#1976d2', '#1565c0', '#0d47a1',
+  '#03a9f4', '#039be5', '#0288d1', '#0277bd', '#01579b',
+  '#00bcd4', '#00acc1', '#0097a7', '#00838f', '#006064',
+  '#009688', '#00897b', '#00796b', '#00695c', '#004d40',
+  '#4caf50', '#43a047', '#388e3c', '#2e7d32', '#1b5e20',
+  '#8bc34a', '#7cb342', '#689f38', '#558b2f', '#33691e',
+  '#cddc39', '#c0ca33', '#afb42b', '#9e9d24', '#827717',
+  '#ffeb3b', '#fdd835', '#fbc02d', '#f9a825', '#f57f17',
+  '#ffc107', '#ffb300', '#ffa000', '#ff8f00', '#ff6f00',
+  '#ff9800', '#fb8c00', '#f57c00', '#ef6c00', '#e65100',
+  '#ff5722', '#f4511e', '#e64a19', '#d84315', '#bf360c',
+  '#795548', '#6d4c41', '#5d4037', '#4e342e', '#3e2723',
+  '#9e9e9e', '#757575', '#616161', '#424242', '#212121',
+  '#607d8b', '#546e7a', '#455a64', '#37474f', '#263238'
 ];
 
-function pixelHue(red, green, blue) {
+function colorLuminance(hexColor) {
+  const channels = hexColor.match(/[a-f\d]{2}/gi).map(channel => {
+    const value = Number.parseInt(channel, 16) / 255;
+    return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+  });
+  return .2126 * channels[0] + .7152 * channels[1] + .0722 * channels[2];
+}
+
+function setViewerColor(color) {
+  const viewer = $('viewer');
+  const useDarkText = colorLuminance(color) > .179;
+  viewer.style.setProperty('--viewer-color', color);
+  viewer.style.setProperty('--viewer-text-color', useDarkText ? '#000000' : '#ffffff');
+  viewer.style.setProperty('--viewer-muted-color', useDarkText ? 'rgb(0 0 0 / 75%)' : 'rgb(255 255 255 / 75%)');
+  viewer.style.setProperty('--viewer-subtle-color', useDarkText ? 'rgb(0 0 0 / 55%)' : 'rgb(255 255 255 / 50%)');
+  viewer.style.setProperty('--viewer-bedo-color', colorLuminance(color) > .25 ? '#01579b' : '#81d4fa');
+}
+
+function rgbToHsl(red, green, blue) {
+  red /= 255;
+  green /= 255;
+  blue /= 255;
   const max = Math.max(red, green, blue);
   const min = Math.min(red, green, blue);
   const delta = max - min;
-  if (!delta) return 0;
+  const lightness = (max + min) / 2;
+  if (!delta) return { hue: 0, saturation: 0, lightness };
   let hue;
   if (max === red) hue = ((green - blue) / delta) % 6;
   else if (max === green) hue = (blue - red) / delta + 2;
   else hue = (red - green) / delta + 4;
-  return (hue * 60 + 360) % 360;
+  return {
+    hue: (hue * 60 + 360) % 360,
+    saturation: delta / (1 - Math.abs(2 * lightness - 1)),
+    lightness
+  };
 }
 
-function complementaryHue(image) {
+function hslToHex(hue, saturation, lightness) {
+  const chroma = (1 - Math.abs(2 * lightness - 1)) * saturation;
+  const section = hue / 60;
+  const second = chroma * (1 - Math.abs(section % 2 - 1));
+  const [red, green, blue] = section < 1 ? [chroma, second, 0]
+    : section < 2 ? [second, chroma, 0]
+      : section < 3 ? [0, chroma, second]
+        : section < 4 ? [0, second, chroma]
+          : section < 5 ? [second, 0, chroma]
+            : [chroma, 0, second];
+  const match = lightness - chroma / 2;
+  return '#' + [red, green, blue]
+    .map(channel => Math.round((channel + match) * 255).toString(16).padStart(2, '0'))
+    .join('');
+}
+
+function colorToOklab(hexColor) {
+  const [red, green, blue] = hexColor.match(/[a-f\d]{2}/gi).map(channel => {
+    const value = Number.parseInt(channel, 16) / 255;
+    return value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+  });
+  const long = Math.cbrt(.4122214708 * red + .5363325363 * green + .0514459929 * blue);
+  const medium = Math.cbrt(.2119034982 * red + .6806995451 * green + .1073969566 * blue);
+  const short = Math.cbrt(.0883024619 * red + .2817188376 * green + .6299787005 * blue);
+  return [
+    .2104542553 * long + .793617785 * medium - .0040720468 * short,
+    1.9779984951 * long - 2.428592205 * medium + .4505937099 * short,
+    .0259040371 * long + .7827717662 * medium - .808675766 * short
+  ];
+}
+
+function nearestMaterialBackground(targetColor) {
+  const target = colorToOklab(targetColor);
+  return materialBackgrounds.reduce((nearest, color) => {
+    const candidate = colorToOklab(color);
+    const distance = candidate.reduce((sum, channel, index) =>
+      sum + (channel - target[index]) ** 2
+    , 0);
+    return distance < nearest.distance ? { color, distance } : nearest;
+  }, { color: '#263238', distance: Infinity }).color;
+}
+
+function artworkBackground(image) {
   const canvas = document.createElement('canvas');
-  canvas.width = 48;
-  canvas.height = 48;
+  canvas.width = 64;
+  canvas.height = 64;
   const context = canvas.getContext('2d', { willReadFrequently: true });
   context.drawImage(image, 0, 0, canvas.width, canvas.height);
   const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
-  let hueX = 0;
-  let hueY = 0;
-  let totalWeight = 0;
+  const clusters = new Map();
 
   for (let i = 0; i < pixels.length; i += 4) {
     const red = pixels[i];
     const green = pixels[i + 1];
     const blue = pixels[i + 2];
-    const spread = Math.max(red, green, blue) - Math.min(red, green, blue);
-    const lightness = (Math.max(red, green, blue) + Math.min(red, green, blue)) / 510;
-    if (pixels[i + 3] < 128 || spread < 18 || lightness < .08 || lightness > .92) continue;
-    const weight = (spread / 255) * (1 - Math.abs(lightness - .5));
-    const radians = pixelHue(red, green, blue) * Math.PI / 180;
-    hueX += Math.cos(radians) * weight;
-    hueY += Math.sin(radians) * weight;
-    totalWeight += weight;
+    const hsl = rgbToHsl(red, green, blue);
+    if (
+      pixels[i + 3] < 128 ||
+      hsl.lightness < .04 ||
+      (hsl.lightness > .94 && hsl.saturation < .12)
+    ) continue;
+    const hueBand = hsl.saturation < .08 ? 0 : Math.floor(hsl.hue / 20) + 1;
+    const key = `${hueBand}:${Math.floor(hsl.saturation * 4)}:${Math.floor(hsl.lightness * 5)}`;
+    const cluster = clusters.get(key) || { red: 0, green: 0, blue: 0, count: 0, significance: 0 };
+    cluster.red += red;
+    cluster.green += green;
+    cluster.blue += blue;
+    cluster.count++;
+    cluster.significance += .65 + hsl.saturation * .7;
+    clusters.set(key, cluster);
   }
 
-  if (!totalWeight) return null;
-  const dominantHue = (Math.atan2(hueY, hueX) * 180 / Math.PI + 360) % 360;
-  return (dominantHue + 180) % 360;
+  const selected = [...clusters.values()].reduce((best, cluster) =>
+    !best || cluster.significance > best.significance ? cluster : best
+  , null);
+  if (!selected) return '#263238';
+  const source = rgbToHsl(
+    selected.red / selected.count,
+    selected.green / selected.count,
+    selected.blue / selected.count
+  );
+  const saturation = Math.min(.8, Math.max(.2, source.saturation * .85));
+  const lightness = Math.min(.48, Math.max(.3, .24 + source.lightness * .35));
+  return nearestMaterialBackground(hslToHex(source.hue, saturation, lightness));
 }
 
-function hueDistance(first, second) {
-  const distance = Math.abs(first - second);
-  return Math.min(distance, 360 - distance);
-}
-
-function assignViewerColors(targetHues) {
-  const assigned = [];
-  targetHues.forEach((targetHue, index) => {
-    const previous = assigned.at(-1);
-    const first = assigned[0];
-    const isLast = index === targetHues.length - 1;
-    const candidates = viewerPalette.filter(candidate =>
-      (!previous || (
-        candidate.color !== previous.color &&
-        hueDistance(candidate.hue, previous.hue) >= 60
-      )) &&
-      (!isLast || !first || (
-        candidate.color !== first.color &&
-        hueDistance(candidate.hue, first.hue) >= 60
-      ))
-    );
-    const available = candidates.length ? candidates : viewerPalette;
-    assigned.push(available.reduce((closest, candidate) => {
-      const distance = targetHue === null ? 0 : hueDistance(candidate.hue, targetHue);
-      return distance < closest.distance ? { ...candidate, distance } : closest;
-    }, { ...available[0], distance: Infinity }));
-  });
-  return assigned.map(entry => entry.color);
-}
-
-function thumbnailHue(entry) {
+function thumbnailBackground(entry) {
   return new Promise(resolve => {
     const image = new Image();
     image.onload = () => {
       try {
-        resolve(complementaryHue(image));
+        resolve(artworkBackground(image));
       } catch (error) {
         console.error(`Failed to analyze ${entry.name} thumbnail colors:`, error);
-        resolve(null);
+        resolve('#263238');
       }
     };
     image.onerror = () => {
       console.error(`Failed to load ${entry.name} thumbnail for color analysis.`);
-      resolve(null);
+      resolve('#263238');
     };
     image.src = entry.thumbnail;
   });
 }
 
 async function prepareViewerColors(entries) {
-  const targetHues = await Promise.all(entries.map(thumbnailHue));
-  const colors = assignViewerColors(targetHues);
+  const colors = await Promise.all(entries.map(thumbnailBackground));
   entries.forEach((entry, index) => viewerColors.set(entry.name, colors[index]));
   const selectedColor = viewerColors.get(current());
-  if (selectedColor) $('viewer').style.setProperty('--viewer-color', selectedColor);
+  if (selectedColor) setViewerColor(selectedColor);
 }
 
 function parsePlacard(text) {
@@ -130,6 +186,15 @@ function parsePlacard(text) {
   return { title, subtitle, year };
 }
 
+async function loadPlacards(entries) {
+  await Promise.all(entries.map(async entry => {
+    const res = await fetch(entry.details);
+    if (!res.ok) throw new Error(`Could not load ${entry.name} details (${res.status}).`);
+    entry.placard = parsePlacard(await res.text());
+    if (!entry.placard.title) throw new Error(`Artwork title missing from ${entry.details}.`);
+  }));
+}
+
 function renderGallery() {
   const galleryTiles = works.map(name => {
     const entry = artwork.get(name);
@@ -138,11 +203,11 @@ function renderGallery() {
     const title = document.createElement('span');
     link.href = '#' + encodeURIComponent(name);
     img.src = entry.thumbnail;
-    img.alt = entry.title;
+    img.alt = entry.placard.title.replaceAll('\\n', ' ');
     img.loading = 'lazy';
     img.decoding = 'async';
     title.className = 'gallery-title';
-    title.textContent = entry.title;
+    title.textContent = entry.placard.title.replaceAll('\\n', ' ');
     title.setAttribute('aria-hidden', 'true');
     link.append(img, title);
     return link;
@@ -165,46 +230,27 @@ async function show(name) {
   $('gallery-header').hidden = true;
   viewer.hidden = false;
   viewer.style.removeProperty('--viewer-color');
+  viewer.style.removeProperty('--viewer-text-color');
+  viewer.style.removeProperty('--viewer-muted-color');
+  viewer.style.removeProperty('--viewer-subtle-color');
+  viewer.style.removeProperty('--viewer-bedo-color');
   image.onload = () => {
     if (current() !== name) return;
     const preparedColor = viewerColors.get(name);
     if (preparedColor) {
-      viewer.style.setProperty('--viewer-color', preparedColor);
+      setViewerColor(preparedColor);
       return;
     }
     try {
-      const targetHue = complementaryHue(image);
-      const color = targetHue === null
-        ? '#263238'
-        : viewerPalette.reduce((closest, candidate) =>
-          hueDistance(candidate.hue, targetHue) < hueDistance(closest.hue, targetHue)
-            ? candidate
-            : closest
-        ).color;
-      viewer.style.setProperty('--viewer-color', color);
+      setViewerColor(artworkBackground(image));
     } catch (error) {
-      console.error('Failed to select a complementary artwork background:', error);
+      console.error('Failed to select an artwork background:', error);
     }
   };
   image.src = selected.image;
   image.alt = name;
-  renderPlacard({ title: '', subtitle: '', year: '' });
+  renderPlacard(selected.placard);
   $('title').removeAttribute('role');
-  try {
-    const res = await fetch(selected.details);
-    if (!res.ok) throw new Error(`Could not load ${name} details (${res.status}).`);
-    const md = await res.text();
-    if (current() === name) renderPlacard(parsePlacard(md));
-  } catch (error) {
-    console.error('Failed to load artwork details:', error);
-    if (current() !== name) return;
-    renderPlacard({
-      title: 'Artwork details could not be loaded.',
-      subtitle: 'Please close and reopen the artwork to try again.',
-      year: ''
-    });
-    $('title').setAttribute('role', 'alert');
-  }
 }
 
 function close() {
@@ -242,14 +288,14 @@ fetch('artworks.json')
     if (!res.ok) throw new Error(`Could not load artwork list (${res.status}).`);
     return res.json();
   })
-  .then(entries => {
+  .then(async entries => {
     if (!Array.isArray(entries) || entries.some(entry =>
       !entry || typeof entry.name !== 'string' || !entry.name ||
-      typeof entry.title !== 'string' || !entry.title ||
       typeof entry.image !== 'string' || !entry.image ||
       typeof entry.thumbnail !== 'string' || !entry.thumbnail ||
       typeof entry.details !== 'string' || !entry.details
-    )) throw new Error('Invalid artwork list. Expected entries with name, title, image, thumbnail, and details paths.');
+    )) throw new Error('Invalid artwork list. Expected entries with name, image, thumbnail, and details paths.');
+    await loadPlacards(entries);
     entries.forEach(entry => artwork.set(entry.name, entry));
     works = entries
       .map(entry => entry.name)
