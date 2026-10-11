@@ -1,6 +1,8 @@
 const $ = id => document.getElementById(id);
 const file = (name, ext) => `src/${encodeURIComponent(name)}.${ext}`;
-const current = () => decodeURIComponent(location.hash.slice(1));
+const current = () => {
+  try { return decodeURIComponent(location.hash.slice(1)); } catch { return ''; }
+};
 
 let works = [];
 
@@ -30,20 +32,24 @@ function renderGallery() {
   }));
 }
 
-async function show(name) {
-  $('viewer').hidden = false;
-  $('art').src = file(name, 'png');
-  $('art').alt = name;
-  const res = await fetch(file(name, 'md'));
-  const placard = parsePlacard(res.ok ? await res.text() : name);
-  if (current() !== name) return;
-  $('title').textContent = placard.title;
-  $('dimensions').textContent = placard.dimensions;
-  $('description').replaceChildren(...placard.description.map(text => {
+function renderPlacard({ title, dimensions, description }) {
+  $('title').textContent = title;
+  $('dimensions').textContent = dimensions;
+  $('description').replaceChildren(...description.map(text => {
     const p = document.createElement('p');
     p.textContent = text;
     return p;
   }));
+}
+
+async function show(name) {
+  $('viewer').hidden = false;
+  $('art').src = file(name, 'png');
+  $('art').alt = name;
+  renderPlacard(parsePlacard(name));
+  const res = await fetch(file(name, 'md')).catch(() => null);
+  const md = res?.ok ? await res.text() : name;
+  if (current() === name) renderPlacard(parsePlacard(md));
 }
 
 function close() {
