@@ -1,0 +1,25 @@
+{
+  "name": "mrbedo.github.io",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Bedo Works Of Art",
+  "scripts": {
+    "thumbnails": "node scripts/generate-thumbnails.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mrbedo/mrbedo.github.io.git"
+  },
+  "license": "UNLICENSED",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/mrbedo/mrbedo.github.io/issues"
+  },
+  "homepage": "https://mrbedo.github.io/",
+  "devDependencies": {
+    "sharp": "^0.34.4"
+  },
+  "devDependencies": {
+    "sharp": "^0.35.5"
+  }
+}

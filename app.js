@@ -1,11 +1,10 @@
 const $ = id => document.getElementById(id);
-const file = (name, ext) => `src/${encodeURIComponent(name)}.${ext}`;
 const current = () => {
   try { return decodeURIComponent(location.hash.slice(1)); } catch { return ''; }
 };
 
 let works = [];
-const images = new Map();
+const artwork = new Map();
 
 // Markdown layout: "# Title", then dimensions line, then description paragraphs.
 function parsePlacard(md) {
@@ -27,9 +26,10 @@ function renderGallery() {
     const link = document.createElement('a');
     const img = document.createElement('img');
     link.href = '#' + encodeURIComponent(name);
-    img.src = images.get(name);
+    img.src = artwork.get(name).thumbnail;
     img.alt = name;
     img.loading = 'lazy';
+    img.decoding = 'async';
     link.append(img);
     return link;
   }));
@@ -46,13 +46,14 @@ function renderPlacard({ title, dimensions, description }) {
 }
 
 async function show(name) {
+  const selected = artwork.get(name);
   $('viewer').hidden = false;
-  $('art').src = images.get(name);
+  $('art').src = selected.image;
   $('art').alt = name;
   renderPlacard({ title: 'Loading artwork details...', dimensions: '', description: [] });
   $('description').removeAttribute('role');
   try {
-    const res = await fetch(file(name, 'md'));
+    const res = await fetch(selected.details);
     if (!res.ok) throw new Error(`Could not load ${name} details (${res.status}).`);
     const md = await res.text();
     if (current() === name) renderPlacard(parsePlacard(md));
@@ -102,9 +103,11 @@ fetch('artworks.json')
   .then(entries => {
     if (!Array.isArray(entries) || entries.some(entry =>
       !entry || typeof entry.name !== 'string' || !entry.name ||
-      typeof entry.image !== 'string' || !entry.image
-    )) throw new Error('Invalid artwork list. Build the site with Jekyll before serving it.');
-    entries.forEach(({ name, image }) => images.set(name, image));
+      typeof entry.image !== 'string' || !entry.image ||
+      typeof entry.thumbnail !== 'string' || !entry.thumbnail ||
+      typeof entry.details !== 'string' || !entry.details
+    )) throw new Error('Invalid artwork list. Expected entries with name, image, thumbnail, and details paths.');
+    entries.forEach(entry => artwork.set(entry.name, entry));
     works = entries.map(entry => entry.name).sort();
     renderGallery();
     route();
