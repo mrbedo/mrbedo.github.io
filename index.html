@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Bedo Works Of Art</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header><h1>Bedo Works Of Art</h1></header>
+  <main id="gallery"></main>
+
+  <section id="viewer" hidden>
+    <a id="close" href="#" aria-label="Close">&times;</a>
+    <button id="prev" aria-label="Previous">&larr;</button>
+    <figure>
+      <img id="art" alt="">
+      <figcaption class="placard">
+        <h2 id="title"></h2>
+        <p id="dimensions"></p>
+        <div id="description"></div>
+      </figcaption>
+    </figure>
+    <button id="next" aria-label="Next">&rarr;</button>
+  </section>
+
+  <script src="app.js"></script>
+</body>
+</html>

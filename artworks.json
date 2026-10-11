@@ -1,0 +1,3 @@
+---
+---
+{{ site.static_files | where_exp: "f", "f.path contains '/src/'" | where: "extname", ".png" | map: "basename" | jsonify }}
