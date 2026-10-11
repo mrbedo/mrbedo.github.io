@@ -57,11 +57,12 @@ h1 {
   font-stretch: condensed;
   line-height: 1;
   letter-spacing: -.055em;
+  text-shadow: 1px 1px 1px rgb(0 0 0 / 35%);
   transform: scaleY(1.25);
 }
 h1 span:nth-child(1) { color: #0277bd; }
 h1 span:nth-child(2) { color: #ff6e40; }
-.instagram-link {
+.header-link {
   display: inline-flex;
   align-items: center;
   gap: .4rem;
@@ -72,8 +73,8 @@ h1 span:nth-child(2) { color: #ff6e40; }
   font-weight: 700;
   text-decoration: none;
 }
-.instagram-link:hover { color: #ff6e40; }
-.instagram-link svg {
+.header-link:hover { color: #ff6e40; }
+.header-link svg {
   width: 1.5rem;
   height: 1.5rem;
   fill: none;
@@ -214,68 +215,6 @@ body > .copyright a { pointer-events: auto; }
   width: 100%;
   color: var(--subtle-color);
   background: transparent;
-}
-
-.terms-page {
-  --terms-header-height: clamp(8rem, 25vw, 20rem);
-  display: flex;
-  flex-direction: column;
-  min-height: 100vh;
-  padding-top: calc(var(--terms-header-height) + 4px);
-  background: var(--base-color);
-}
-.terms-page > header {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: 5;
-  width: calc(100% - 4px);
-  min-height: var(--terms-header-height);
-}
-.terms-page main {
-  flex: 1;
-  width: min(100% - 2rem, 48rem);
-  margin: 0 auto;
-  padding: clamp(3rem, 8vw, 6rem) 0;
-}
-.terms-page article {
-  font-family: "Palatino Linotype", "Book Antiqua", Palatino, Georgia, serif;
-  font-size: 1.125rem;
-  line-height: 1.7;
-}
-.terms-page article h2 {
-  margin: 0;
-  font-size: clamp(2rem, 7vw, 3.5rem);
-  font-weight: normal;
-  line-height: 1.1;
-  overflow-wrap: anywhere;
-}
-.terms-page article .terms-subtitle {
-  margin: .4rem 0 2rem;
-  color: var(--muted-color);
-  font-size: clamp(1.2rem, 3vw, 1.6rem);
-  line-height: 1.2;
-}
-.terms-page article h3 {
-  margin: 2.5rem 0 .75rem;
-  font-size: 1.35rem;
-  font-weight: normal;
-  line-height: 1.3;
-  overflow-wrap: anywhere;
-}
-.terms-page article p { margin: 0 0 1.25rem; }
-.terms-page article ul {
-  margin: 0 0 1.25rem;
-  padding-left: 1.5rem;
-}
-.terms-page article li { margin-bottom: .75rem; }
-.terms-page article a {
-  color: var(--text-color);
-  text-underline-offset: .2em;
-}
-.terms-page > .copyright {
-  padding: 1.5rem 1rem;
-  background: var(--page-color);
 }
 
 @media (max-width: 800px) {

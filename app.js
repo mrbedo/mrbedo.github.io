@@ -251,7 +251,9 @@ fetch('artworks.json')
       typeof entry.details !== 'string' || !entry.details
     )) throw new Error('Invalid artwork list. Expected entries with name, title, image, thumbnail, and details paths.');
     entries.forEach(entry => artwork.set(entry.name, entry));
-    works = entries.map(entry => entry.name).sort();
+    works = entries
+      .map(entry => entry.name)
+      .sort((a, b) => Number.parseInt(b, 10) - Number.parseInt(a, 10));
     renderGallery();
     prepareViewerColors(works.map(name => artwork.get(name)));
     route();

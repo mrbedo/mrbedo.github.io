@@ -1,9 +1,9 @@
 # mrbedo.github.io
 Bedoworks
 
-## Copyright and terms
+## Copyright
 
-Copyright (c) 2026 Bedoworks. All rights reserved. No content license is granted. See the [website Terms and Conditions](about/terms.html). Downloading, copying, redistribution, modification, commercial use, automated collection, and AI or machine-learning use are prohibited without the author's prior express written permission, except where applicable law provides otherwise. Permission requests: mrbedo+art@gmail.com.
+Copyright (c) 2026 Bedoworks. All rights reserved.
 
 ## Crawlers and AI
 
