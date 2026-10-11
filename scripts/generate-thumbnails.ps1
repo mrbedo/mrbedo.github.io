@@ -1,3 +1,9 @@
+[CmdletBinding()]
+param(
+    [Parameter(Position = 0)]
+    [string[]]$Name
+)
+
 $ErrorActionPreference = 'Stop'
 
 Add-Type -AssemblyName System.Drawing
@@ -6,6 +12,15 @@ $root = Split-Path -Parent $PSScriptRoot
 $manifestPath = Join-Path $root 'artworks.json'
 $thumbnailDirectory = Join-Path $root 'thumbs'
 $entries = Get-Content -Raw -LiteralPath $manifestPath | ConvertFrom-Json
+
+if ($Name) {
+    $requestedNames = @($Name)
+    $entries = @($entries | Where-Object { $_.name -in $requestedNames })
+    $missingNames = @($requestedNames | Where-Object { $_ -notin $entries.name })
+    if ($missingNames.Count -gt 0) {
+        throw "Artwork not found in artworks.json: $($missingNames -join ', ')"
+    }
+}
 
 foreach ($entry in $entries) {
     $expectedThumbnail = "thumbs/$($entry.name)_thumb.jpg"
@@ -25,7 +40,9 @@ foreach ($entry in $entries) {
 }
 
 New-Item -ItemType Directory -Path $thumbnailDirectory -Force | Out-Null
-Get-ChildItem -LiteralPath $thumbnailDirectory -File | Remove-Item -Force
+if (-not $Name) {
+    Get-ChildItem -LiteralPath $thumbnailDirectory -File | Remove-Item -Force
+}
 
 $jpegCodec = [System.Drawing.Imaging.ImageCodecInfo]::GetImageEncoders() |
     Where-Object MimeType -eq 'image/jpeg' |
