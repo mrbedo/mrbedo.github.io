@@ -1,0 +1,3 @@
+# Montmartre Through The Clock Window of Musée d’Orsay
+## 2026 Oil on Canvas 18” x 22”
+Back in 2015 I took a photo out of the Giant Clock Window from The Musée d’Orsay as a reference to one day paint it. That day was 10 years later but never too late. The goal of this painting was to see if I could paint a busy city scape without actually having to paint many of the overwhelming details. I repainted the clouds four times because they were just so much fun to paint.
