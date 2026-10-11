@@ -1,0 +1,29 @@
+# AI training and AI agent crawlers: no access to anything.
+User-agent: GPTBot
+User-agent: ChatGPT-User
+User-agent: OAI-SearchBot
+User-agent: ClaudeBot
+User-agent: Claude-User
+User-agent: Claude-SearchBot
+User-agent: anthropic-ai
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+User-agent: PerplexityBot
+User-agent: Perplexity-User
+User-agent: Meta-ExternalAgent
+User-agent: Meta-ExternalFetcher
+User-agent: FacebookBot
+User-agent: Bytespider
+User-agent: Amazonbot
+User-agent: cohere-ai
+User-agent: Diffbot
+User-agent: omgili
+User-agent: ImagesiftBot
+User-agent: Timpibot
+User-agent: YouBot
+Disallow: /
+
+# Everyone else (search engines): index the page, not the artwork files.
+User-agent: *
+Disallow: /src/
