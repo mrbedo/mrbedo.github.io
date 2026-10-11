@@ -2,7 +2,7 @@
   "name": "mrbedo.github.io",
   "version": "1.0.0",
   "private": true,
-  "description": "Bedo Works Of Art",
+  "description": "Bedoworks",
   "scripts": {
     "thumbnails": "node scripts/generate-thumbnails.js"
   },

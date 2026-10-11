@@ -1,5 +1,5 @@
 # mrbedo.github.io
-Bedo Works Of Art
+Bedoworks
 
 ## Copyright and license
 
