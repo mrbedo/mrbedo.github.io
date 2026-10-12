@@ -4,6 +4,8 @@ const current = () => {
 };
 
 const heroImage = document.querySelector('.hero-image');
+const heroEyeOverlay = document.querySelector('.hero-eye-overlay');
+const heroMedia = [heroImage, heroEyeOverlay].filter(Boolean);
 const heroHeader = $('gallery-header');
 const landingStage = $('landing-stage');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
@@ -11,6 +13,10 @@ let heroParallaxFrame = 0;
 let renderedHeroShiftX = Number.NaN;
 let renderedHeroShiftY = Number.NaN;
 let renderedHeroScale = Number.NaN;
+let heroEyeSettings;
+let requestedHeroGaze = '';
+let heroGazeFrame = 0;
+const heroGazeImages = new Map();
 
 function updateHeroParallax() {
   heroParallaxFrame = 0;
@@ -32,15 +38,15 @@ function updateHeroParallax() {
     : Math.min(window.innerHeight * .18, 180) * progress;
   const scale = landscape ? 1 + .2 * progress : 1;
   if (shiftX !== renderedHeroShiftX) {
-    heroImage.style.setProperty('--hero-shift-x', `${shiftX}px`);
+    heroMedia.forEach(media => media.style.setProperty('--hero-shift-x', `${shiftX}px`));
     renderedHeroShiftX = shiftX;
   }
   if (shiftY !== renderedHeroShiftY) {
-    heroImage.style.setProperty('--hero-shift-y', `${shiftY}px`);
+    heroMedia.forEach(media => media.style.setProperty('--hero-shift-y', `${shiftY}px`));
     renderedHeroShiftY = shiftY;
   }
   if (scale !== renderedHeroScale) {
-    heroImage.style.setProperty('--hero-scale', scale);
+    heroMedia.forEach(media => media.style.setProperty('--hero-scale', scale));
     renderedHeroScale = scale;
   }
 }
@@ -55,6 +61,103 @@ window.addEventListener('resize', scheduleHeroParallax, { passive: true });
 document.addEventListener('visibilitychange', scheduleHeroParallax);
 reducedMotion.addEventListener('change', scheduleHeroParallax);
 scheduleHeroParallax();
+
+function loadHeroGazeImage(fileName) {
+  if (!heroGazeImages.has(fileName)) {
+    const image = new Image();
+    const loaded = new Promise((resolve, reject) => {
+      image.onload = () => resolve(image);
+      image.onerror = () => reject(new Error(`Could not load eye gaze image: ${fileName}`));
+    });
+    image.src = `src/about/eyes/${fileName}`;
+    heroGazeImages.set(fileName, loaded);
+  }
+  return heroGazeImages.get(fileName);
+}
+
+function drawHeroGaze(image) {
+  const context = heroEyeOverlay.getContext('2d');
+  const { crop } = heroEyeSettings;
+  context.clearRect(0, 0, heroEyeOverlay.width, heroEyeOverlay.height);
+  context.drawImage(image, 0, 0, crop.width, crop.height, crop.x, crop.y, crop.width, crop.height);
+}
+
+async function showHeroGaze(stateName) {
+  const fileName = heroEyeSettings.states[stateName];
+  if (!fileName || requestedHeroGaze === fileName) return;
+  requestedHeroGaze = fileName;
+  try {
+    const image = await loadHeroGazeImage(fileName);
+    if (requestedHeroGaze !== fileName) return;
+    drawHeroGaze(image);
+  } catch (error) {
+    console.error('Failed to load the header eye gaze:', error);
+  }
+}
+
+function getHeroGazeState(event) {
+  const imageStyle = getComputedStyle(heroImage);
+  const imageRect = heroImage.getBoundingClientRect();
+  const imageScale = Math.max(
+    imageRect.width / heroImage.naturalWidth,
+    imageRect.height / heroImage.naturalHeight
+  );
+  const [positionX, positionY] = imageStyle.objectPosition.split(' ');
+  const getPositionOffset = (position, available) => {
+    if (position === 'left' || position === 'top') return 0;
+    if (position === 'right' || position === 'bottom') return available;
+    if (position === 'center') return available / 2;
+    return Number.parseFloat(position) / 100 * available;
+  };
+  const cropOffsetX = getPositionOffset(positionX, imageRect.width - heroImage.naturalWidth * imageScale);
+  const cropOffsetY = getPositionOffset(positionY, imageRect.height - heroImage.naturalHeight * imageScale);
+  const eyesCenter = heroEyeSettings.eyes.reduce((center, eye) => ({
+    x: center.x + eye.x / heroEyeSettings.eyes.length,
+    y: center.y + eye.y / heroEyeSettings.eyes.length
+  }), { x: 0, y: 0 });
+  const targetX = imageRect.left + cropOffsetX + eyesCenter.x * imageScale;
+  const targetY = imageRect.top + cropOffsetY + eyesCenter.y * imageScale;
+  const horizontal = Math.max(-1, Math.min(1, (event.clientX - targetX) / (window.innerWidth * .28)));
+  const vertical = Math.max(-1, Math.min(1, (event.clientY - targetY) / (window.innerHeight * .28)));
+  const column = Math.abs(horizontal) < .18 ? 0 : Math.sign(horizontal);
+  const verticalThreshold = vertical > 0 ? .6 : .18;
+  const row = Math.abs(vertical) < verticalThreshold ? 0 : Math.sign(vertical);
+  if (column === 0 && row === 0 && Math.abs(horizontal) < .08 && Math.abs(vertical) < .08) {
+    return 'center-focused';
+  }
+  const directions = new Map([
+    ['-1,-1', 'up-left'], ['0,-1', 'up'], ['1,-1', 'up-right'],
+    ['-1,0', 'left'], ['0,0', 'center'], ['1,0', 'right'],
+    ['-1,1', 'down-left'], ['0,1', 'down'], ['1,1', 'down-right']
+  ]);
+  return directions.get(`${column},${row}`);
+}
+
+async function initializeHeroEyes() {
+  if (!heroEyeOverlay || !heroImage) return;
+  try {
+    const response = await fetch('src/about/eyes/manifest.json');
+    if (!response.ok) throw new Error(`Could not load eye manifest (${response.status}).`);
+    heroEyeSettings = await response.json();
+    if (!heroImage.complete) {
+      await new Promise(resolve => heroImage.addEventListener('load', resolve, { once: true }));
+    }
+    heroEyeOverlay.width = heroImage.naturalWidth;
+    heroEyeOverlay.height = heroImage.naturalHeight;
+    showHeroGaze('center-focused');
+    window.addEventListener('pointermove', event => {
+      if (heroGazeFrame) return;
+      heroGazeFrame = requestAnimationFrame(() => {
+        heroGazeFrame = 0;
+        showHeroGaze(getHeroGazeState(event));
+      });
+    }, { passive: true });
+  } catch (error) {
+    console.error('Failed to initialize the header eyes:', error);
+  }
+}
+
+initializeHeroEyes();
 
 let works = [];
 const artwork = new Map();

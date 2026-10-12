@@ -1,0 +1,25 @@
+﻿{
+    "image": "src/about/header.jpg",
+    "crop": {
+        "x": 559,
+        "y": 367,
+        "width": 867,
+        "height": 687
+    },
+    "eyes": [
+        { "x": 940, "y": 780 },
+        { "x": 1112, "y": 780 }
+    ],
+    "states": {
+        "up-left": "left up.png",
+        "up": "up.png",
+        "up-right": "up right.png",
+        "left": "left.png",
+        "center": "center.png",
+        "center-focused": "center focused.png",
+        "right": "right.png",
+        "down-left": "left down.png",
+        "down": "down.png",
+        "down-right": "down right.png"
+    }
+}
