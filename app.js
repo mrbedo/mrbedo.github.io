@@ -3,10 +3,62 @@ const current = () => {
   try { return decodeURIComponent(location.hash.slice(1)); } catch { return ''; }
 };
 
+const heroImage = document.querySelector('.hero-image');
+const heroHeader = $('gallery-header');
+const landingStage = $('landing-stage');
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+let heroParallaxFrame = 0;
+let renderedHeroShiftX = Number.NaN;
+let renderedHeroShiftY = Number.NaN;
+let renderedHeroScale = Number.NaN;
+
+function updateHeroParallax() {
+  heroParallaxFrame = 0;
+  if (!heroImage || document.hidden) return;
+  const landscape = window.matchMedia('(orientation: landscape)').matches;
+  const maxPageScroll = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+  const effectRange = landscape
+    ? Math.max(landingStage.scrollHeight - landingStage.clientHeight, 1)
+    : Math.min(heroHeader.offsetHeight, maxPageScroll);
+  const scrollTop = landscape ? landingStage.scrollTop : window.scrollY;
+  const progress = reducedMotion.matches
+    ? 0
+    : Math.min(scrollTop / effectRange, 1);
+  const shiftX = landscape
+    ? -window.innerWidth * .2 * progress
+    : -Math.min(window.innerWidth * .15, 220) * progress;
+  const shiftY = landscape
+    ? -Math.min(window.innerHeight * .04, 56) * progress
+    : Math.min(window.innerHeight * .18, 180) * progress;
+  const scale = landscape ? 1 + .2 * progress : 1;
+  if (shiftX !== renderedHeroShiftX) {
+    heroImage.style.setProperty('--hero-shift-x', `${shiftX}px`);
+    renderedHeroShiftX = shiftX;
+  }
+  if (shiftY !== renderedHeroShiftY) {
+    heroImage.style.setProperty('--hero-shift-y', `${shiftY}px`);
+    renderedHeroShiftY = shiftY;
+  }
+  if (scale !== renderedHeroScale) {
+    heroImage.style.setProperty('--hero-scale', scale);
+    renderedHeroScale = scale;
+  }
+}
+
+function scheduleHeroParallax() {
+  if (!heroParallaxFrame) heroParallaxFrame = requestAnimationFrame(updateHeroParallax);
+}
+
+window.addEventListener('scroll', scheduleHeroParallax, { passive: true });
+landingStage.addEventListener('scroll', scheduleHeroParallax, { passive: true });
+window.addEventListener('resize', scheduleHeroParallax, { passive: true });
+document.addEventListener('visibilitychange', scheduleHeroParallax);
+reducedMotion.addEventListener('change', scheduleHeroParallax);
+scheduleHeroParallax();
+
 let works = [];
 const artwork = new Map();
 const viewerColors = new Map();
-const galleryTitles = new Map();
 const materialBackgrounds = [
   '#f44336', '#e53935', '#d32f2f', '#c62828', '#b71c1c',
   '#e91e63', '#d81b60', '#c2185b', '#ad1457', '#880e4f',
@@ -40,12 +92,10 @@ function colorLuminance(hexColor) {
 function setViewerColor(color) {
   const viewer = $('viewer');
   const materialColor = materialBackgrounds.includes(color.toLowerCase()) ? color.toLowerCase() : '#263238';
-  const useDarkText = colorLuminance(materialColor) > .179;
+  const useDarkAccents = colorLuminance(materialColor) > .25;
   viewer.style.setProperty('--viewer-color', materialColor);
-  viewer.style.setProperty('--viewer-text-color', useDarkText ? '#000000' : '#ffffff');
-  viewer.style.setProperty('--viewer-muted-color', useDarkText ? 'rgb(0 0 0 / 75%)' : 'rgb(255 255 255 / 75%)');
-  viewer.style.setProperty('--viewer-subtle-color', useDarkText ? 'rgb(0 0 0 / 55%)' : 'rgb(255 255 255 / 50%)');
-  viewer.style.setProperty('--viewer-bedo-color', colorLuminance(materialColor) > .25 ? '#01579b' : '#81d4fa');
+  viewer.style.setProperty('--viewer-bedo-color', useDarkAccents ? '#01579b' : '#81d4fa');
+  viewer.style.setProperty('--viewer-works-color', useDarkAccents ? '#b71c1c' : '#ff8a80');
 }
 
 function rgbToHsl(red, green, blue) {
@@ -177,7 +227,6 @@ async function prepareViewerColors(entries) {
   const colors = await Promise.all(entries.map(thumbnailBackground));
   entries.forEach((entry, index) => {
     viewerColors.set(entry.name, colors[index]);
-    galleryTitles.get(entry.name)?.style.setProperty('--gallery-title-color', colors[index]);
   });
   const selectedColor = viewerColors.get(current());
   if (selectedColor) setViewerColor(selectedColor);
@@ -201,22 +250,23 @@ async function loadPlacards(entries) {
 }
 
 function renderGallery() {
-  galleryTitles.clear();
   const galleryTiles = works.map(name => {
     const entry = artwork.get(name);
     const link = document.createElement('a');
     const img = document.createElement('img');
+    const imageFrame = document.createElement('span');
     const title = document.createElement('span');
     link.href = '#' + encodeURIComponent(name);
     img.src = entry.thumbnail;
     img.alt = entry.placard.title.replaceAll('\\n', ' ');
     img.loading = 'lazy';
     img.decoding = 'async';
+    imageFrame.className = 'gallery-image-frame';
+    imageFrame.append(img);
     title.className = 'gallery-title';
     title.textContent = entry.placard.title.replaceAll('\\n', ' ');
     title.setAttribute('aria-hidden', 'true');
-    galleryTitles.set(name, title);
-    link.append(img, title);
+    link.append(imageFrame, title);
     return link;
   });
   $('gallery').replaceChildren(...galleryTiles);
@@ -230,21 +280,81 @@ function renderPlacard({ title, subtitle, year }) {
   $('year').textContent = year;
 }
 
+function fittedArtworkArea(aspectRatio, availableWidth, availableHeight) {
+  const width = Math.min(availableWidth, availableHeight * aspectRatio);
+  return width * width / aspectRatio;
+}
+
+function updateViewerFit() {
+  const viewer = $('viewer');
+  const image = $('art');
+  if (viewer.hidden || !image.naturalWidth || !image.naturalHeight) return;
+  if (window.innerHeight <= 480 || window.innerWidth <= 300) {
+    viewer.dataset.artLayout = 'compact';
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+    const edgeInset = Math.min(1.5 * rem, Math.max(rem, window.innerWidth * .014));
+    const availableWidth = window.innerWidth - 2 * edgeInset;
+    const availableHeight = window.innerHeight - 2 * edgeInset;
+    const aspectRatio = image.naturalWidth / image.naturalHeight;
+    const fitScale = Math.min(availableWidth / image.naturalWidth, availableHeight / image.naturalHeight);
+    const minimumScale = (11.25 * rem) / (aspectRatio >= 1 ? image.naturalHeight : image.naturalWidth);
+    const scale = Math.min(Math.max(fitScale, minimumScale), availableHeight / image.naturalHeight);
+    image.style.setProperty('--compact-art-width', `${image.naturalWidth * scale}px`);
+    image.style.setProperty('--compact-art-height', `${image.naturalHeight * scale}px`);
+    return;
+  }
+  if (window.innerWidth <= 600) {
+    viewer.dataset.artLayout = 'wide';
+    image.style.removeProperty('--compact-art-width');
+    image.style.removeProperty('--compact-art-height');
+    return;
+  }
+  image.style.removeProperty('--compact-art-width');
+  image.style.removeProperty('--compact-art-height');
+
+  const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize);
+  const viewportWidth = window.innerWidth;
+  const viewportHeight = window.innerHeight;
+  const aspectRatio = image.naturalWidth / image.naturalHeight;
+  const compact = viewportWidth <= 900;
+  const edgeInset = Math.min(1.5 * rem, Math.max(rem, viewportWidth * .014));
+  const navigationWidth = (compact ? 7 : 8) * rem;
+  const sidePadding = 2 * edgeInset;
+  const sideRails = (compact ? 16 : 28) * rem;
+  const sideGaps = compact ? 2 * rem : 2 * Math.min(2 * rem, Math.max(rem, viewportWidth * .02));
+  const sideWidth = Math.max(0, viewportWidth - navigationWidth - sidePadding - sideRails - sideGaps);
+  const sideHeight = Math.max(0, viewportHeight - 5.5 * rem);
+  const bottomWidth = Math.max(0, viewportWidth - navigationWidth - 2 * edgeInset);
+  const bottomHeight = Math.max(0, viewportHeight - 10.25 * rem);
+  const sideArea = fittedArtworkArea(aspectRatio, sideWidth, sideHeight);
+  const bottomArea = fittedArtworkArea(aspectRatio, bottomWidth, bottomHeight);
+  viewer.dataset.artLayout = viewportWidth <= 900 && bottomArea > sideArea ? 'wide' : 'tall';
+}
+
+let viewerFitFrame = 0;
+function scheduleViewerFit() {
+  if (viewerFitFrame) return;
+  viewerFitFrame = requestAnimationFrame(() => {
+    viewerFitFrame = 0;
+    updateViewerFit();
+  });
+}
+
 async function show(name) {
   const selected = artwork.get(name);
   const viewer = $('viewer');
   const image = $('art');
+  viewer.classList.remove('image-only');
   $('gallery-header').hidden = true;
   viewer.hidden = false;
   viewer.style.removeProperty('--viewer-color');
-  viewer.style.removeProperty('--viewer-text-color');
-  viewer.style.removeProperty('--viewer-muted-color');
-  viewer.style.removeProperty('--viewer-subtle-color');
   viewer.style.removeProperty('--viewer-bedo-color');
+  viewer.style.removeProperty('--viewer-works-color');
   const preparedColor = viewerColors.get(name);
   if (preparedColor) setViewerColor(preparedColor);
   image.onload = () => {
     if (current() !== name) return;
+    updateViewerFit();
     if (preparedColor) return;
     try {
       setViewerColor(artworkBackground(image));
@@ -254,6 +364,9 @@ async function show(name) {
   };
   image.src = selected.image;
   image.alt = name;
+  image.setAttribute('aria-pressed', 'false');
+  image.setAttribute('aria-label', `Show ${name} fullscreen`);
+  if (image.complete) image.onload();
   renderPlacard(selected.placard);
   $('title').removeAttribute('role');
 }
@@ -272,17 +385,40 @@ function route() {
   if (works.includes(current())) show(current());
   else {
     $('viewer').hidden = true;
+    $('viewer').classList.remove('image-only');
     $('gallery-header').hidden = false;
   }
 }
 
+function toggleImageOnly() {
+  const viewer = $('viewer');
+  const image = $('art');
+  const isImageOnly = viewer.classList.toggle('image-only');
+  image.setAttribute('aria-pressed', String(isImageOnly));
+  image.setAttribute('aria-label', `${isImageOnly ? 'Exit' : 'Show'} fullscreen artwork: ${image.alt}`);
+  if (isImageOnly) image.focus({ preventScroll: true });
+}
+
 $('prev').onclick = () => step(-1);
 $('next').onclick = () => step(1);
+$('art').setAttribute('role', 'button');
+$('art').setAttribute('tabindex', '0');
+$('art').onclick = toggleImageOnly;
+$('art').onkeydown = event => {
+  if (event.key !== 'Enter' && event.key !== ' ') return;
+  event.preventDefault();
+  toggleImageOnly();
+};
 $('viewer-home').onclick = e => { e.preventDefault(); close(); };
 $('close').onclick = e => { e.preventDefault(); close(); };
 window.addEventListener('hashchange', route);
+window.addEventListener('resize', scheduleViewerFit, { passive: true });
 document.addEventListener('keydown', e => {
   if ($('viewer').hidden) return;
+  if ($('viewer').classList.contains('image-only')) {
+    if (e.key === 'Escape') toggleImageOnly();
+    return;
+  }
   if (e.key === 'ArrowLeft') step(-1);
   if (e.key === 'ArrowRight') step(1);
   if (e.key === 'Escape') close();
