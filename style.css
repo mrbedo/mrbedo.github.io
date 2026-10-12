@@ -101,9 +101,12 @@ h1 {
 #gallery-header h1 {
   padding: 0;
   color: #fff;
+  background-color: transparent;
   background: transparent;
   box-shadow: none;
   font-size: clamp(1.875rem, 3vw, 3rem);
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 #gallery-header h1 span { color: #fff; }
 h1 span:nth-child(1) { color: var(--blue-color); }
@@ -131,6 +134,7 @@ h1 span:nth-child(2) { color: var(--accent-color); }
   background: transparent;
   box-shadow: none;
   font-size: clamp(.9375rem, 1.5vw, 1.125rem);
+  white-space: nowrap;
 }
 #gallery-header .header-link:hover {
   color: #ff6d00;
@@ -471,10 +475,8 @@ body > .copyright {
 @media (max-width: 900px) {
   :root { --viewer-control-inset: var(--edge-inset); }
   #gallery-header h1 {
-    background: rgb(247 246 242 / 64%);
-    box-shadow:
-      0 .7rem 1.6rem rgb(20 20 20 / 15%),
-      0 .15rem .4rem rgb(20 20 20 / 9%);
+    background: transparent;
+    box-shadow: none;
   }
   #viewer { grid-template-columns: 3.5rem minmax(0, 1fr) 3.5rem; }
   figure {
@@ -491,10 +493,12 @@ body > .copyright {
   }
   h1 { flex-direction: column; }
   #gallery-header h1 {
-    padding: .2em .25em .18em;
-    background: rgb(247 246 242 / 20%);
-    box-shadow: 0 .5rem 1.2rem rgb(20 20 20 / 12%);
+    flex-direction: row;
+    padding: 0;
+    background: transparent;
+    box-shadow: none;
     font-size: clamp(2rem, 10vw, 3rem);
+    white-space: nowrap;
   }
   .header-link {
     max-width: 100%;

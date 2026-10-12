@@ -156,6 +156,32 @@ function getHeroGazeState(event) {
   return directions.get(`${column},${row}`);
 }
 
+function scheduleHeroGaze(clientX, clientY) {
+  if (heroGazeFrame) return;
+  heroGazeFrame = requestAnimationFrame(() => {
+    heroGazeFrame = 0;
+    showHeroGaze(getHeroGazeState({ clientX, clientY }));
+  });
+}
+
+function trackTouchGaze(event) {
+  const touch = event.touches[0];
+  if (touch) scheduleHeroGaze(touch.clientX, touch.clientY);
+}
+
+function resetHeroGaze() {
+  if (heroGazeFrame) cancelAnimationFrame(heroGazeFrame);
+  heroGazeFrame = 0;
+  requestedHeroGaze = '';
+  if (heroGazeTransitionLayer) {
+    heroGazeTransitionLayer.getAnimations().forEach(animation => animation.cancel());
+    heroGazeTransitionLayer.remove();
+    heroGazeTransitionLayer = null;
+  }
+  heroEyeOverlay.getContext('2d').clearRect(0, 0, heroEyeOverlay.width, heroEyeOverlay.height);
+  hasRenderedHeroGaze = false;
+}
+
 async function initializeHeroEyes() {
   if (!heroEyeOverlay || !heroImage) return;
   try {
@@ -167,14 +193,16 @@ async function initializeHeroEyes() {
     }
     heroEyeOverlay.width = heroImage.naturalWidth;
     heroEyeOverlay.height = heroImage.naturalHeight;
-    showHeroGaze('center-focused');
     window.addEventListener('pointermove', event => {
-      if (heroGazeFrame) return;
-      heroGazeFrame = requestAnimationFrame(() => {
-        heroGazeFrame = 0;
-        showHeroGaze(getHeroGazeState(event));
-      });
+      if (event.pointerType !== 'touch') scheduleHeroGaze(event.clientX, event.clientY);
     }, { passive: true });
+    window.addEventListener('touchstart', trackTouchGaze, { passive: true });
+    window.addEventListener('touchmove', trackTouchGaze, { passive: true });
+    window.addEventListener('touchend', event => {
+      if (event.touches.length) trackTouchGaze(event);
+      else resetHeroGaze();
+    }, { passive: true });
+    window.addEventListener('touchcancel', resetHeroGaze, { passive: true });
   } catch (error) {
     console.error('Failed to initialize the header eyes:', error);
   }
