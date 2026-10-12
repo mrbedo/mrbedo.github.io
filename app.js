@@ -16,6 +16,8 @@ let renderedHeroScale = Number.NaN;
 let heroEyeSettings;
 let requestedHeroGaze = '';
 let heroGazeFrame = 0;
+let hasRenderedHeroGaze = false;
+let heroGazeTransitionLayer;
 const heroGazeImages = new Map();
 
 function updateHeroParallax() {
@@ -78,8 +80,29 @@ function loadHeroGazeImage(fileName) {
 function drawHeroGaze(image) {
   const context = heroEyeOverlay.getContext('2d');
   const { crop } = heroEyeSettings;
+  if (heroGazeTransitionLayer) {
+    heroGazeTransitionLayer.getAnimations().forEach(animation => animation.cancel());
+    heroGazeTransitionLayer.remove();
+    heroGazeTransitionLayer = null;
+  }
+  if (hasRenderedHeroGaze && !reducedMotion.matches) {
+    const transitionLayer = heroEyeOverlay.cloneNode();
+    transitionLayer.classList.add('hero-eye-transition');
+    transitionLayer.getContext('2d').drawImage(heroEyeOverlay, 0, 0);
+    heroHeader.append(transitionLayer);
+    heroGazeTransitionLayer = transitionLayer;
+    const animation = transitionLayer.animate([
+      { opacity: 1, filter: 'blur(0px)' },
+      { opacity: 0, filter: 'blur(1.5px)' }
+    ], { duration: 140, easing: 'ease-out' });
+    animation.onfinish = () => {
+      transitionLayer.remove();
+      if (heroGazeTransitionLayer === transitionLayer) heroGazeTransitionLayer = null;
+    };
+  }
   context.clearRect(0, 0, heroEyeOverlay.width, heroEyeOverlay.height);
   context.drawImage(image, 0, 0, crop.width, crop.height, crop.x, crop.y, crop.width, crop.height);
+  hasRenderedHeroGaze = true;
 }
 
 async function showHeroGaze(stateName) {

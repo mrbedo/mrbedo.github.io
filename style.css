@@ -70,6 +70,10 @@ header {
   pointer-events: none;
 }
 .hero-eye-overlay { z-index: 1; }
+.hero-eye-transition {
+  z-index: 2;
+  will-change: filter, opacity;
+}
 .header-brand {
   position: relative;
   z-index: 3;
