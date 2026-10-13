@@ -143,7 +143,6 @@ function renderGallery() {
 function renderPlacard({ title, subtitle, year }) {
   const titleElement = $('title');
   titleElement.textContent = title.replaceAll('\\n', '\n');
-  titleElement.classList.toggle('wrapped', title.includes('\\n'));
   $('subtitle').textContent = subtitle;
   $('year').textContent = year;
 }

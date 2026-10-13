@@ -371,7 +371,6 @@ figure {
   line-height: 1.04;
   white-space: pre-line;
 }
-#title.wrapped { font-size: clamp(.8rem, 7cqi, 2rem); }
 #subtitle, #year { color: rgb(255 255 255 / 75%); }
 #subtitle { margin-top: .75rem; }
 
@@ -407,7 +406,6 @@ figure {
   font-size: 1.25rem;
   white-space: nowrap;
 }
-#viewer[data-art-layout="wide"] #title.wrapped { font-size: 1rem; }
 #viewer[data-art-layout="wide"] #year { grid-column: 1; grid-row: 2; }
 #viewer[data-art-layout="wide"] #subtitle { grid-column: 2; grid-row: 2; margin-top: 0; }
 
@@ -461,7 +459,10 @@ figure {
   width: max-content;
   max-width: calc(100vw - var(--viewer-control-size) - var(--viewer-control-inset) - var(--viewer-control-inset) - var(--viewer-control-inset));
 }
-.viewer-brand h1 { line-height: .8; }
+.viewer-brand h1 {
+  color: #fff;
+  line-height: .8;
+}
 .header-brand .header-link span,
 .viewer-brand .header-link span {
   min-width: 0;
@@ -578,10 +579,8 @@ body > .copyright {
     max-height: min(62dvh, calc(100dvh - 13rem));
   }
   #viewer[data-art-layout="wide"] #title { font-size: 1.1rem; }
-  #viewer[data-art-layout="wide"] #title.wrapped { font-size: .9rem; }
   #viewer[data-art-layout="wide"] #subtitle { margin-top: .35rem; }
   #title { font-size: 1.1rem; line-height: 1.08; }
-  #title.wrapped { font-size: .9rem; }
   #subtitle { margin-top: .35rem; }
   #viewer button {
     position: absolute;
