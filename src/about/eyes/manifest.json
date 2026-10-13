@@ -15,11 +15,14 @@
         "up": "up.png",
         "up-right": "up right.png",
         "left": "left.png",
+        "middle-left": "left middle.png",
         "center": "center.png",
         "center-focused": "center focused.png",
         "right": "right.png",
         "down-left": "left down.png",
+        "down-middle": "down middle.png",
         "down": "down.png",
-        "down-right": "down right.png"
+        "down-right": "down right.png",
+        "blink": "blink.png"
     }
 }
