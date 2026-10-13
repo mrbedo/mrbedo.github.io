@@ -235,15 +235,6 @@ h1 {
   }
   #landing-stage #gallery .gallery-toolbar {
     position: relative;
-    z-index: 12;
-    flex: 0 0 auto;
-    display: flex;
-    min-height: 3.5rem;
-    align-items: center;
-    justify-content: space-between;
-    margin: 0;
-    padding: var(--space-2) var(--edge-inset);
-    background: #fff;
   }
   #gallery-header {
     position: sticky;
@@ -261,7 +252,19 @@ h1 {
   overflow: visible;
   isolation: isolate;
 }
-#gallery .gallery-toolbar { display: none; }
+#gallery .gallery-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 12;
+  flex: 0 0 auto;
+  display: flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: space-between;
+  margin: 0;
+  padding: var(--space-2) var(--edge-inset);
+  background: #fff;
+}
 .gallery-toolbar-heading {
   display: flex;
   min-width: 0;
@@ -358,7 +361,7 @@ h1 {
   padding: 2.75rem var(--edge-inset) .9rem;
   color: #fff;
   background: linear-gradient(transparent, rgb(0 0 0 / 74%));
-  font-family: var(--font-serif);
+  font-family: var(--font-brand);
   font-size: clamp(1rem, 1.5vw, 1.4rem);
   font-weight: normal;
   line-height: 1.15;
@@ -451,7 +454,7 @@ figure {
   overflow-y: auto;
   color: currentColor;
   container-type: inline-size;
-  font-family: var(--font-serif);
+  font-family: var(--font-brand);
   font-size: clamp(.7rem, 4.2cqi, .95rem);
   line-height: 1.5;
   overflow-wrap: anywhere;
@@ -720,18 +723,6 @@ body > .copyright {
   #gallery {
     display: block;
     overflow: visible;
-  }
-  #gallery .gallery-toolbar {
-    position: sticky;
-    top: 0;
-    z-index: 12;
-    display: flex;
-    min-height: 3.5rem;
-    align-items: center;
-    justify-content: space-between;
-    margin: 0;
-    padding: var(--space-2) var(--edge-inset);
-    background: #fff;
   }
   .gallery-content {
     display: grid;

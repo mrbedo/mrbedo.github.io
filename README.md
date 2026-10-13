@@ -13,6 +13,8 @@ React components use PascalCase names and filenames; other source modules use ke
 
 Application and gallery state live in `src/view-models/`. React components in `src/components/` subscribe to viewmodel snapshots and send user actions back to the viewmodels; they contain presentation markup rather than application state.
 
+The gallery heading and year filters are visible in every responsive layout, including the horizontal gallery below the landing image. Artwork titles and viewer descriptions use the same Oswald font as the gallery heading.
+
 ## Copyright
 
 Copyright (c) 2026 Bedoworks. All rights reserved.
