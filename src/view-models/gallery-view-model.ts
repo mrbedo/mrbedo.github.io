@@ -1,4 +1,5 @@
 import type { ArtworkEntry } from '../artwork-catalog.ts';
+import { ObservableViewModel } from './observable-view-model.ts';
 
 export interface GalleryViewModelState {
   expanded: boolean;
@@ -14,28 +15,25 @@ export interface GalleryViewElements {
   header: HTMLElement;
 }
 
-export class GalleryViewModel {
+export class GalleryViewModel extends ObservableViewModel<GalleryViewModelState> {
   private stage: HTMLElement | null = null;
   private gallery: HTMLElement | null = null;
   private closeButton: HTMLElement | null = null;
   private header: HTMLElement | null = null;
   private readonly browserWindow: Window;
   private readonly document: Document;
-  private readonly listeners = new Set<() => void>();
   private entries: ArtworkEntry[] = [];
-  private state: GalleryViewModelState = {
-    expanded: false,
-    years: [],
-    selectedYears: [],
-    visibleEntries: []
-  };
 
   constructor(browserWindow: Window = window, document: Document = window.document) {
+    super({
+      expanded: false,
+      years: [],
+      selectedYears: [],
+      visibleEntries: []
+    });
     this.browserWindow = browserWindow;
     this.document = document;
   }
-
-  getSnapshot = (): GalleryViewModelState => this.state;
 
   setEntries(entries: ArtworkEntry[]): void {
     this.entries = entries;
@@ -43,13 +41,11 @@ export class GalleryViewModel {
       (first, second) => first.localeCompare(second, undefined, { numeric: true })
     );
     const selectedYears = this.state.selectedYears.filter((year) => years.includes(year));
-    this.state = {
-      ...this.state,
+    this.updateState({
       years,
       selectedYears,
       visibleEntries: this.filterEntries(selectedYears)
-    };
-    this.publish();
+    });
   }
 
   toggleYear(year: string): void {
@@ -58,18 +54,11 @@ export class GalleryViewModel {
     }
 
     const nextSelectedYears = this.state.selectedYears.includes(year) ? [] : [year];
-    this.state = {
-      ...this.state,
+    this.updateState({
       selectedYears: nextSelectedYears,
       visibleEntries: this.filterEntries(nextSelectedYears)
-    };
-    this.publish();
+    });
   }
-
-  subscribe = (listener: () => void): (() => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
 
   start({ stage, gallery, closeButton, header }: GalleryViewElements): () => void {
     this.stage = stage;
@@ -158,18 +147,13 @@ export class GalleryViewModel {
       return;
     }
 
-    this.state = { ...this.state, expanded };
-    this.publish();
+    this.updateState({ expanded });
   }
 
   private filterEntries(selectedYears: string[]): ArtworkEntry[] {
     return selectedYears.length
       ? this.entries.filter((entry) => selectedYears.includes(entry.placard.year))
       : this.entries;
-  }
-
-  private publish(): void {
-    this.listeners.forEach((listener) => listener());
   }
 
   private expand(): void {
@@ -203,7 +187,7 @@ export class GalleryViewModel {
       if (!this.state.expanded) {
         event.preventDefault();
         this.expand();
-      } else if (this.stage!.scrollTop < this.stage!.scrollHeight - this.stage!.clientHeight) {
+      } else if (this.stage!.scrollTop < this.getExpandedScrollTop()) {
         event.preventDefault();
       }
     }

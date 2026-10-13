@@ -1,6 +1,6 @@
 import { createElement } from 'react';
 import { createRoot } from 'react-dom/client';
-import { ReactGalleryApp } from './src/react-gallery-app.tsx';
+import { ReactGalleryApp } from './src/ReactGalleryApp.tsx';
 import { GalleryAppViewModel } from './src/view-models/gallery-app-view-model.ts';
 
 const rootElement = document.getElementById('root');

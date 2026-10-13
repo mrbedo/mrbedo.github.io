@@ -1,8 +1,8 @@
 import { useEffect, useRef, useSyncExternalStore } from 'react';
 import type { GalleryAppViewModel } from './view-models/gallery-app-view-model.ts';
-import { ArtworkViewer } from './components/artwork-viewer.tsx';
-import { GallerySlideOut } from './components/gallery-slide-out.tsx';
-import { LandingView } from './components/landing-view.tsx';
+import { ArtworkViewer } from './components/ArtworkViewer.tsx';
+import { GallerySlideOut } from './components/GallerySlideOut.tsx';
+import { LandingView } from './components/LandingView.tsx';
 
 export function ReactGalleryApp({ viewModel }: { viewModel: GalleryAppViewModel }) {
   const appState = useSyncExternalStore(

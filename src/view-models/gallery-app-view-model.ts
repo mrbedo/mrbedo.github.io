@@ -4,6 +4,7 @@ import { viewerColorManager } from '../artwork-colors.ts';
 import type { ViewerColorManager } from '../artwork-colors.ts';
 import { BedoHeaderController } from '../bedo.ts';
 import { ViewerLayoutController } from '../viewer-layout.ts';
+import { ObservableViewModel } from './observable-view-model.ts';
 import { GalleryViewModel } from './gallery-view-model.ts';
 import type { GalleryViewElements } from './gallery-view-model.ts';
 
@@ -29,6 +30,7 @@ interface GalleryAppViewModelOptions {
   colors?: ViewerColorManager;
   browserWindow?: Window;
   document?: Document;
+  headerControllerConstructor?: new () => BedoHeaderController;
 }
 
 function currentArtworkName(browserWindow: Window): string {
@@ -39,16 +41,15 @@ function currentArtworkName(browserWindow: Window): string {
   }
 }
 
-export class GalleryAppViewModel {
+export class GalleryAppViewModel extends ObservableViewModel<GalleryAppViewModelState> {
   readonly gallery: GalleryViewModel;
 
   private readonly catalog: ArtworkCatalog;
   private readonly colors: ViewerColorManager;
   private readonly browserWindow: Window;
   private readonly document: Document;
-  private readonly listeners = new Set<() => void>();
-  private readonly headerController = { current: null as BedoHeaderController | null };
-  private state: GalleryAppViewModelState;
+  private readonly headerControllerConstructor: new () => BedoHeaderController;
+  private headerController: BedoHeaderController | null = null;
   private viewerElement: HTMLElement | null = null;
   private artworkImage: HTMLImageElement | null = null;
   private viewerLayout: ViewerLayoutController | null = null;
@@ -58,27 +59,22 @@ export class GalleryAppViewModel {
     catalog = new ArtworkCatalog(),
     colors = viewerColorManager,
     browserWindow = window,
-    document = window.document
+    document = window.document,
+    headerControllerConstructor = BedoHeaderController
   }: GalleryAppViewModelOptions = {}) {
-    this.catalog = catalog;
-    this.colors = colors;
-    this.browserWindow = browserWindow;
-    this.document = document;
-    this.gallery = new GalleryViewModel(browserWindow, document);
-    this.state = {
+    super({
       entries: [],
       loadError: '',
       selectedName: currentArtworkName(browserWindow),
       imageOnly: false
-    };
+    });
+    this.catalog = catalog;
+    this.colors = colors;
+    this.browserWindow = browserWindow;
+    this.document = document;
+    this.headerControllerConstructor = headerControllerConstructor;
+    this.gallery = new GalleryViewModel(browserWindow, document);
   }
-
-  getSnapshot = (): GalleryAppViewModelState => this.state;
-
-  subscribe = (listener: () => void): (() => void) => {
-    this.listeners.add(listener);
-    return () => this.listeners.delete(listener);
-  };
 
   get selectedEntry(): ArtworkEntry | undefined {
     return this.state.entries.find((entry) => entry.name === this.state.selectedName);
@@ -96,7 +92,7 @@ export class GalleryAppViewModel {
       this.document
     );
 
-    this.headerController.current ??= new BedoHeaderController();
+    this.headerController ??= new this.headerControllerConstructor();
 
     const onHashChange = () => this.syncRoute();
     const onKeyDown = (event: KeyboardEvent) => this.handleViewerKeyDown(event);
@@ -126,7 +122,7 @@ export class GalleryAppViewModel {
 
   closeViewer(): void {
     this.browserWindow.history.pushState(null, '', this.browserWindow.location.pathname);
-    this.update({ selectedName: '', imageOnly: false });
+    this.updateState({ selectedName: '', imageOnly: false });
     this.clearViewerColor();
   }
 
@@ -147,7 +143,7 @@ export class GalleryAppViewModel {
     }
 
     const imageOnly = !this.state.imageOnly;
-    this.update({ imageOnly });
+    this.updateState({ imageOnly });
     if (imageOnly) {
       this.artworkImage?.focus({ preventScroll: true });
     }
@@ -174,7 +170,7 @@ export class GalleryAppViewModel {
         return;
       }
 
-      this.update({ entries });
+      this.updateState({ entries });
       this.gallery.setEntries(entries);
       void this.colors.prepareViewerColors(entries, () => this.state.selectedName);
       this.applySelectedColor();
@@ -184,12 +180,12 @@ export class GalleryAppViewModel {
       }
 
       console.error('Failed to load the gallery:', error);
-      this.update({ loadError: GALLERY_LOAD_ERROR });
+      this.updateState({ loadError: GALLERY_LOAD_ERROR });
     }
   }
 
   private syncRoute(): void {
-    this.update({ selectedName: currentArtworkName(this.browserWindow), imageOnly: false });
+    this.updateState({ selectedName: currentArtworkName(this.browserWindow), imageOnly: false });
     this.applySelectedColor();
   }
 
@@ -200,7 +196,7 @@ export class GalleryAppViewModel {
 
     if (this.state.imageOnly) {
       if (event.key === 'Escape') {
-        this.update({ imageOnly: false });
+        this.updateState({ imageOnly: false });
       }
       return;
     }
@@ -227,8 +223,4 @@ export class GalleryAppViewModel {
     this.viewerElement?.style.removeProperty('--viewer-works-color');
   }
 
-  private update(patch: Partial<GalleryAppViewModelState>): void {
-    this.state = { ...this.state, ...patch };
-    this.listeners.forEach((listener) => listener());
-  }
 }

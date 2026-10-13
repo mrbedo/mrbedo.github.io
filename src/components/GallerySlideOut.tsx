@@ -1,7 +1,7 @@
 import { useSyncExternalStore } from 'react';
 import type { Ref } from 'react';
 import type { GalleryViewModel } from '../view-models/gallery-view-model.ts';
-import { GalleryTile } from './gallery-tile.tsx';
+import { GalleryTile } from './GalleryTile.tsx';
 
 interface GallerySlideOutProps {
   loadError: string;

@@ -1,9 +1,8 @@
 import type { KeyboardEvent, Ref } from 'react';
 import type { ArtworkEntry } from '../artwork-catalog.ts';
 import type { GalleryAppViewModel } from '../view-models/gallery-app-view-model.ts';
-import { InstagramLink } from './instagram-link.tsx';
-
-const COPYRIGHT = 'Copyright © 2026 Bedoworks. All rights reserved.';
+import { InstagramLink } from './InstagramLink.tsx';
+import { BrandHeading, CopyrightNotice } from './SiteChrome.tsx';
 
 interface ArtworkViewerProps {
   entry: ArtworkEntry | undefined;
@@ -46,7 +45,7 @@ export function ArtworkViewer({
             viewModel.closeViewer();
           }}
         >
-          <h1 aria-label="Bedoworks">BEDOWORKS</h1>
+          <BrandHeading />
         </a>
         <InstagramLink />
       </div>
@@ -89,7 +88,7 @@ export function ArtworkViewer({
       >
         &rarr;
       </button>
-      <footer className="copyright">{COPYRIGHT}</footer>
+      <CopyrightNotice />
     </section>
   );
 }

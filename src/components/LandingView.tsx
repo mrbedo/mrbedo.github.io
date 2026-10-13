@@ -1,7 +1,6 @@
 import type { ReactNode, Ref } from 'react';
-import { InstagramLink } from './instagram-link.tsx';
-
-const COPYRIGHT = 'Copyright © 2026 Bedoworks. All rights reserved.';
+import { InstagramLink } from './InstagramLink.tsx';
+import { BrandHeading, CopyrightNotice } from './SiteChrome.tsx';
 
 interface LandingViewProps {
   hasSelectedArtwork: boolean;
@@ -27,13 +26,13 @@ export function LandingView({
           />
           <canvas className="bedo-eye-overlay" aria-hidden="true" />
           <div className="header-brand">
-            <h1 aria-label="Bedoworks">BEDOWORKS</h1>
+            <BrandHeading />
             <InstagramLink />
           </div>
         </header>
         {gallery}
       </div>
-      <footer className="copyright">{COPYRIGHT}</footer>
+      <CopyrightNotice />
     </>
   );
 }

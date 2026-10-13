@@ -6,6 +6,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --host 0.0.0.0",
     "test": "node --experimental-strip-types --test",
+    "test:core-coverage": "node --experimental-strip-types --test --experimental-test-coverage --test-coverage-include=src/artwork-catalog.ts --test-coverage-include=src/interaction-behavior.ts --test-coverage-include=src/math-utils.ts --test-coverage-include=src/view-models/observable-view-model.ts --test-coverage-include=src/view-models/gallery-view-model.ts --test-coverage-include=src/view-models/gallery-app-view-model.ts --test-coverage-include=src/viewer-layout.ts --test-coverage-lines=100 --test-coverage-functions=100 --test-coverage-branches=100",
     "format": "node scripts/format-source.mjs",
     "format:check": "node scripts/format-source.mjs --check"
   },

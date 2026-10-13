@@ -83,15 +83,13 @@ export class ViewerLayoutController {
       return;
     }
 
-    if (browserWindow.innerWidth <= WIDE_VIEWPORT_MAX_WIDTH_PX) {
-      viewer.dataset.artLayout = 'wide';
-      image.style.removeProperty('--compact-art-width');
-      image.style.removeProperty('--compact-art-height');
-      return;
-    }
-
     image.style.removeProperty('--compact-art-width');
     image.style.removeProperty('--compact-art-height');
+
+    if (browserWindow.innerWidth <= WIDE_VIEWPORT_MAX_WIDTH_PX) {
+      viewer.dataset.artLayout = 'wide';
+      return;
+    }
 
     const rem = Number.parseFloat(
       this.browserWindow.getComputedStyle(this.document.documentElement).fontSize

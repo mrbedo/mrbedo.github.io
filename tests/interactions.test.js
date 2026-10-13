@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { ArtworkCatalog } from '../src/artwork-catalog.ts';
 import { BlinkBehavior, ManualBlinkController } from '../src/interaction-behavior.ts';
+import { GalleryAppViewModel } from '../src/view-models/gallery-app-view-model.ts';
 import { GalleryViewModel } from '../src/view-models/gallery-view-model.ts';
 
 class TestTarget {
@@ -12,6 +13,13 @@ class TestTarget {
     const listeners = this.listeners.get(type) ?? [];
     listeners.push(listener);
     this.listeners.set(type, listeners);
+  }
+
+  removeEventListener(type, listener) {
+    this.listeners.set(
+      type,
+      (this.listeners.get(type) ?? []).filter((registered) => registered !== listener)
+    );
   }
 
   dispatch(type, event = {}) {
@@ -52,7 +60,7 @@ function createFakeClock() {
   };
 }
 
-function createGalleryInteractions({ landscape = true, reducedMotion = false } = {}) {
+function createGalleryInteractions({ landscape = true, reducedMotion = false, visualViewport = false } = {}) {
   const document = new TestTarget();
   const gallery = new TestTarget();
   const closeButton = new TestTarget();
@@ -70,6 +78,7 @@ function createGalleryInteractions({ landscape = true, reducedMotion = false } =
   const header = { hidden: false };
   const windowListeners = new Map();
   const windowScrollToCalls = [];
+  const media = { landscape, reducedMotion };
   const window = {
     addEventListener(type, listener) {
       const listeners = windowListeners.get(type) ?? [];
@@ -91,20 +100,36 @@ function createGalleryInteractions({ landscape = true, reducedMotion = false } =
       windowScrollToCalls.push(options);
     },
     matchMedia(query) {
-      return { matches: query.includes('orientation') ? landscape : reducedMotion };
+      return { matches: query.includes('orientation') ? media.landscape : media.reducedMotion };
     }
   };
+  if (visualViewport) {
+    window.visualViewport = new TestTarget();
+  }
 
   closeButton.contains = (target) => target === closeButton || target?.parent === closeButton;
   gallery.contains = (target) => target === gallery || target?.parent === gallery;
   const viewModel = new GalleryViewModel(window, document);
-  viewModel.start({
+  const stop = viewModel.start({
     stage,
     gallery,
     closeButton,
     header
   });
-  return { document, gallery, closeButton, viewModel, stage, header, window, windowScrollToCalls };
+  return {
+    document,
+    gallery,
+    closeButton,
+    viewModel,
+    stage,
+    header,
+    window,
+    windowScrollToCalls,
+    setLandscape: (value) => {
+      media.landscape = value;
+    },
+    stop
+  };
 }
 
 test('artwork catalog validates, enriches, and sorts gallery entries', async () => {
@@ -158,11 +183,38 @@ test('artwork catalog rejects malformed records and empty placard titles', async
   await assert.rejects(missingTitle.load(), /Artwork title missing/);
 });
 
+test('artwork catalog reports list and detail request failures', async () => {
+  const listFailure = new ArtworkCatalog(async () => new Response('', { status: 503 }));
+  const detailFailure = new ArtworkCatalog(async (url) =>
+    url === 'artworks.json'
+      ? new Response(
+          JSON.stringify([
+            { name: '01_art', image: 'art.jpg', thumbnail: 'thumb.jpg', details: 'art.md' }
+          ]),
+          { status: 200 }
+        )
+      : new Response('', { status: 404 })
+  );
+
+  await assert.rejects(listFailure.load(), /Could not load artwork list \(503\)/);
+  await assert.rejects(detailFailure.load(), /Could not load 01_art details \(404\)/);
+});
+
+test('artwork catalog rejects non-array lists and non-object records', async () => {
+  const nonArray = new ArtworkCatalog(async () => new Response('{}', { status: 200 }));
+  const nonObject = new ArtworkCatalog(async () => new Response('[null]', { status: 200 }));
+
+  await assert.rejects(nonArray.load(), /Invalid artwork list/);
+  await assert.rejects(nonObject.load(), /Invalid artwork list/);
+});
+
 test('blink intervals model a relaxed 12 to 18 blinks per minute', () => {
   assert.equal(BlinkBehavior.getIntervalMs(0), 3250);
   assert.equal(BlinkBehavior.getIntervalMs(0.5), 4000);
   assert.equal(BlinkBehavior.getIntervalMs(1), 4750);
   assert.equal(BlinkBehavior.HOLD_DURATION_MS, 140);
+  assert.ok(BlinkBehavior.getIntervalMs() >= 3250);
+  assert.ok(BlinkBehavior.getIntervalMs() <= 4750);
 });
 
 test('a press near either eye is recognized, but a distant press is not', () => {
@@ -281,6 +333,17 @@ test('closing the portrait gallery scrolls back to the top of the page', () => {
   assert.deepEqual(windowScrollToCalls, [{ top: 0, behavior: 'smooth' }]);
 });
 
+test('portrait gallery close respects reduced motion', () => {
+  const { viewModel, windowScrollToCalls } = createGalleryInteractions({
+    landscape: false,
+    reducedMotion: true
+  });
+
+  viewModel.close();
+
+  assert.deepEqual(windowScrollToCalls, [{ top: 0, behavior: 'auto' }]);
+});
+
 test('gallery year filter selects one year or clears to all entries', () => {
   const { document, gallery, viewModel } = createGalleryInteractions();
   viewModel.setEntries([
@@ -333,6 +396,40 @@ test('expanded gallery follows viewport height changes without leaving a vertica
 
   assert.equal(stage.scrollTop, 1200);
   assert.deepEqual(stage.scrollToCalls.at(-1), { top: 1200, behavior: 'auto' });
+  assert.equal(viewModel.getSnapshot().expanded, true);
+});
+
+test('gallery expansion stays at the top when its content fits the viewport', () => {
+  const { document, stage } = createGalleryInteractions();
+  stage.scrollHeight = 800;
+  stage.clientHeight = 900;
+
+  document.dispatch('wheel', { deltaY: 1, preventDefault() {} });
+
+  assert.deepEqual(stage.scrollToCalls, [{ top: 0, behavior: 'smooth' }]);
+});
+
+test('expanded gallery listens to visual viewport resizes when available', () => {
+  const { document, stage, window } = createGalleryInteractions({ visualViewport: true });
+
+  document.dispatch('wheel', { deltaY: 1, preventDefault() {} });
+  stage.scrollHeight = 2400;
+  stage.clientHeight = 1200;
+  window.visualViewport.dispatch('resize');
+
+  assert.equal(stage.scrollTop, 1200);
+  assert.deepEqual(stage.scrollToCalls.at(-1), { top: 1200, behavior: 'auto' });
+});
+
+test('expanded gallery skips landscape repositioning after orientation changes', () => {
+  const { document, stage, window, viewModel, setLandscape } = createGalleryInteractions();
+  document.dispatch('wheel', { deltaY: 1, preventDefault() {} });
+  const scrollCallsBeforeResize = [...stage.scrollToCalls];
+
+  setLandscape(false);
+  window.dispatch('resize');
+
+  assert.deepEqual(stage.scrollToCalls, scrollCallsBeforeResize);
   assert.equal(viewModel.getSnapshot().expanded, true);
 });
 
@@ -396,4 +493,125 @@ test('a press near an eye stays closed until release', () => {
 
   assert.deepEqual(states, ['closed', 'open']);
   assert.equal(blink.isActive(), false);
+});
+
+test('cancelling a manual blink clears its timer without restoring early', () => {
+  const clock = createFakeClock();
+  const states = [];
+  const blink = new ManualBlinkController({
+    blink: () => states.push('closed'),
+    restore: () => states.push('open'),
+    setTimeout: clock.setTimeout,
+    clearTimeout: clock.clearTimeout,
+    now: clock.now
+  });
+
+  blink.pointerDown(3, false);
+  blink.cancel();
+  clock.advance(BlinkBehavior.HOLD_DURATION_MS);
+
+  assert.deepEqual(states, ['closed']);
+  assert.equal(blink.isActive(), false);
+});
+
+test('gallery subscriptions and listeners can be stopped cleanly', () => {
+  const { document, viewModel, stop, stage, window } = createGalleryInteractions();
+  let notifications = 0;
+  const unsubscribe = viewModel.subscribe(() => notifications++);
+
+  unsubscribe();
+  document.dispatch('wheel', { deltaY: 1, preventDefault() {} });
+  const scrollCallsBeforeStop = [...stage.scrollToCalls];
+  stop();
+  document.dispatch('wheel', { deltaY: -1, preventDefault() {} });
+  document.dispatch('pointerdown', { target: {} });
+  document.dispatch('keydown', { key: 'Enter' });
+  window.dispatch('resize');
+
+  assert.equal(notifications, 0);
+  assert.deepEqual(stage.scrollToCalls, scrollCallsBeforeStop);
+  viewModel.close();
+  assert.deepEqual(stage.scrollToCalls, scrollCallsBeforeStop);
+});
+
+test('gallery filtering ignores unknown years and drops unavailable selections', () => {
+  const { viewModel } = createGalleryInteractions();
+  viewModel.setEntries([
+    { name: '2025_art', placard: { year: '2025' } },
+    { name: '2026_art', placard: { year: '2026' } }
+  ]);
+  viewModel.toggleYear('unknown');
+  assert.deepEqual(viewModel.getSnapshot().selectedYears, []);
+
+  viewModel.toggleYear('2025');
+  viewModel.setEntries([{ name: '2026_art', placard: { year: '2026' } }]);
+  assert.deepEqual(viewModel.getSnapshot().selectedYears, []);
+  assert.deepEqual(viewModel.getSnapshot().visibleEntries.map((entry) => entry.name), [
+    '2026_art'
+  ]);
+});
+
+test('gallery leaves native scrolling at the bottom and avoids redundant resize work', () => {
+  const { document, stage, window } = createGalleryInteractions();
+  let prevented = 0;
+  const wheel = () => ({ deltaY: 1, preventDefault() { prevented++; } });
+
+  document.dispatch('wheel', wheel());
+  stage.scrollTop = 0;
+  document.dispatch('wheel', wheel());
+  stage.scrollTop = stage.scrollHeight - stage.clientHeight;
+  document.dispatch('wheel', wheel());
+  const callsBeforeResize = [...stage.scrollToCalls];
+  window.dispatch('resize');
+
+  assert.equal(prevented, 2);
+  assert.deepEqual(stage.scrollToCalls, callsBeforeResize);
+});
+
+test('gallery handles missing event targets and collapsed viewport changes', () => {
+  const { document, stage, window, viewModel } = createGalleryInteractions();
+
+  window.dispatch('resize');
+  document.dispatch('wheel', { deltaY: -1, preventDefault() {} });
+  document.dispatch('wheel', { deltaY: 0, target: null, preventDefault() {} });
+  document.dispatch('pointerdown', { target: null });
+  document.dispatch('keydown', { target: null });
+
+  assert.equal(viewModel.getSnapshot().expanded, true);
+  assert.deepEqual(stage.scrollToCalls, [
+    { top: 0, behavior: 'smooth' },
+    { top: 900, behavior: 'smooth' }
+  ]);
+});
+
+test('app viewmodel exposes a stable snapshot store and safely decodes routes', () => {
+  const historyCalls = [];
+  const browserWindow = {
+    location: { hash: '#01_first', pathname: '/' },
+    history: { pushState: (...args) => historyCalls.push(args) }
+  };
+  const viewModel = new GalleryAppViewModel({ browserWindow, document: {} });
+  const snapshot = viewModel.getSnapshot;
+  const subscribe = viewModel.subscribe;
+  const notifications = [];
+  const unsubscribe = viewModel.subscribe(() => notifications.push(viewModel.getSnapshot()));
+  let activeNotifications = 0;
+  viewModel.subscribe(() => activeNotifications++);
+
+  assert.equal(viewModel.getSnapshot().selectedName, '01_first');
+  unsubscribe();
+  viewModel.closeViewer();
+
+  assert.equal(viewModel.getSnapshot, snapshot);
+  assert.equal(viewModel.subscribe, subscribe);
+  assert.deepEqual(notifications, []);
+  assert.equal(activeNotifications, 1);
+  assert.equal(viewModel.getSnapshot().selectedName, '');
+  assert.deepEqual(historyCalls, [[null, '', '/']]);
+
+  const invalidRoute = new GalleryAppViewModel({
+    browserWindow: { location: { hash: '#%E0%A4%A' } },
+    document: {}
+  });
+  assert.equal(invalidRoute.getSnapshot().selectedName, '');
 });
