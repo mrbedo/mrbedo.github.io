@@ -3,7 +3,7 @@ import { clamp } from './math-utils.js';
 const MIN_SCROLL_RANGE_PX = 1;
 const MIN_PARALLAX_PROGRESS = 0;
 const MAX_PARALLAX_PROGRESS = 1;
-const BASE_HERO_SCALE = 1;
+const BASE_bedo_SCALE = 1;
 const LANDSCAPE_PARALLAX_X_RATIO = .2;
 const PORTRAIT_PARALLAX_X_RATIO = .15;
 const PORTRAIT_PARALLAX_MAX_X_PX = 220;
@@ -36,41 +36,41 @@ const DOWN_MIDDLE_THRESHOLD = .8;
  */
 const $ = id => document.getElementById(id);
 
-// Hero parallax and interactive eye gaze.
-const heroImage = document.querySelector('.hero-image');
-const heroEyeOverlay = document.querySelector('.hero-eye-overlay');
-const heroMedia = [heroImage, heroEyeOverlay].filter(Boolean);
-const heroHeader = $('gallery-header');
+// bedo parallax and interactive eye gaze.
+const bedoImage = document.querySelector('.bedo-image');
+const bedoEyeOverlay = document.querySelector('.bedo-eye-overlay');
+const bedoMedia = [bedoImage, bedoEyeOverlay].filter(Boolean);
+const bedoHeader = $('gallery-header');
 const landingStage = $('landing-stage');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-const heroGazeImages = new Map();
-const heroGazeDirections = new Map([
+const bedoGazeImages = new Map();
+const bedoGazeDirections = new Map([
   ['-1,-1', 'up-left'], ['0,-1', 'up'], ['1,-1', 'up-right'],
   ['-1,0', 'left'], ['0,0', 'center'], ['1,0', 'right'],
   ['-1,1', 'down-left'], ['0,1', 'down'], ['1,1', 'down-right']
 ]);
 
-let heroParallaxFrame = 0;
-let renderedHeroShiftX = Number.NaN;
-let renderedHeroShiftY = Number.NaN;
-let renderedHeroScale = Number.NaN;
-let heroEyeSettings;
-let requestedHeroGaze = '';
-let currentHeroGazeState = 'center';
-let heroGazeFrame = 0;
-let heroBlinkTimer = 0;
-let hasRenderedHeroGaze = false;
-let heroGazeTransitionLayer;
+let bedoParallaxFrame = 0;
+let renderedbedoShiftX = Number.NaN;
+let renderedbedoShiftY = Number.NaN;
+let renderedbedoScale = Number.NaN;
+let bedoEyeSettings;
+let requestedbedoGaze = '';
+let currentbedoGazeState = 'center';
+let bedoGazeFrame = 0;
+let bedoBlinkTimer = 0;
+let hasRenderedbedoGaze = false;
+let bedoGazeTransitionLayer;
 
 // Parallax updates are coalesced so scroll and resize events stay inexpensive.
 
 /**
- * Apply scroll-based movement to the hero image and eye overlay.
+ * Apply scroll-based movement to the bedo image and eye overlay.
  * @returns {void}
  */
-function updateHeroParallax() {
-  heroParallaxFrame = 0;
-  if (!heroImage || document.hidden) return;
+function updatebedoParallax() {
+  bedoParallaxFrame = 0;
+  if (!bedoImage || document.hidden) return;
 
   const landscape = window.matchMedia('(orientation: landscape)').matches;
   const maxPageScroll = Math.max(
@@ -82,7 +82,7 @@ function updateHeroParallax() {
       landingStage.scrollHeight - landingStage.clientHeight,
       MIN_SCROLL_RANGE_PX
     )
-    : Math.min(heroHeader.offsetHeight, maxPageScroll);
+    : Math.min(bedoHeader.offsetHeight, maxPageScroll);
   const scrollTop = landscape ? landingStage.scrollTop : window.scrollY;
   const progress = reducedMotion.matches
     ? MIN_PARALLAX_PROGRESS
@@ -103,31 +103,31 @@ function updateHeroParallax() {
       PORTRAIT_PARALLAX_MAX_Y_PX
     ) * progress;
   const scale = landscape
-    ? BASE_HERO_SCALE + LANDSCAPE_PARALLAX_SCALE_RATIO * progress
-    : BASE_HERO_SCALE;
+    ? BASE_bedo_SCALE + LANDSCAPE_PARALLAX_SCALE_RATIO * progress
+    : BASE_bedo_SCALE;
 
 
-  if (shiftX !== renderedHeroShiftX) {
-    heroMedia.forEach(media => media.style.setProperty('--hero-shift-x', `${shiftX}px`));
-    renderedHeroShiftX = shiftX;
+  if (shiftX !== renderedbedoShiftX) {
+    bedoMedia.forEach(media => media.style.setProperty('--bedo-shift-x', `${shiftX}px`));
+    renderedbedoShiftX = shiftX;
   }
-  if (shiftY !== renderedHeroShiftY) {
-    heroMedia.forEach(media => media.style.setProperty('--hero-shift-y', `${shiftY}px`));
-    renderedHeroShiftY = shiftY;
+  if (shiftY !== renderedbedoShiftY) {
+    bedoMedia.forEach(media => media.style.setProperty('--bedo-shift-y', `${shiftY}px`));
+    renderedbedoShiftY = shiftY;
   }
-  if (scale !== renderedHeroScale) {
-    heroMedia.forEach(media => media.style.setProperty('--hero-scale', scale));
-    renderedHeroScale = scale;
+  if (scale !== renderedbedoScale) {
+    bedoMedia.forEach(media => media.style.setProperty('--bedo-scale', scale));
+    renderedbedoScale = scale;
   }
 }
 
 /**
- * Schedule one hero parallax update on the next animation frame.
+ * Schedule one bedo parallax update on the next animation frame.
  * @returns {void}
  */
-function scheduleHeroParallax() {
-  if (!heroParallaxFrame) {
-    heroParallaxFrame = requestAnimationFrame(updateHeroParallax);
+function schedulebedoParallax() {
+  if (!bedoParallaxFrame) {
+    bedoParallaxFrame = requestAnimationFrame(updatebedoParallax);
   }
 }
 
@@ -138,18 +138,18 @@ function scheduleHeroParallax() {
  * @param {string} fileName Sprite filename from the gaze manifest.
  * @returns {Promise<HTMLImageElement>} The loaded sprite image.
  */
-function loadHeroGazeImage(fileName) {
-  if (!heroGazeImages.has(fileName)) {
+function loadbedoGazeImage(fileName) {
+  if (!bedoGazeImages.has(fileName)) {
     const image = new Image();
     const loaded = new Promise((resolve, reject) => {
       image.onload = () => resolve(image);
       image.onerror = () => reject(new Error(`Could not load eye gaze image: ${fileName}`));
     });
     image.src = `src/about/eyes/${fileName}`;
-    heroGazeImages.set(fileName, loaded);
+    bedoGazeImages.set(fileName, loaded);
   }
 
-  return heroGazeImages.get(fileName);
+  return bedoGazeImages.get(fileName);
 }
 
 /**
@@ -157,22 +157,22 @@ function loadHeroGazeImage(fileName) {
  * @param {HTMLImageElement} image Loaded eye-gaze sprite.
  * @returns {void}
  */
-function drawHeroGaze(image) {
-  const context = heroEyeOverlay.getContext('2d');
-  const { crop } = heroEyeSettings;
+function drawbedoGaze(image) {
+  const context = bedoEyeOverlay.getContext('2d');
+  const { crop } = bedoEyeSettings;
 
-  if (heroGazeTransitionLayer) {
-    heroGazeTransitionLayer.getAnimations().forEach(animation => animation.cancel());
-    heroGazeTransitionLayer.remove();
-    heroGazeTransitionLayer = null;
+  if (bedoGazeTransitionLayer) {
+    bedoGazeTransitionLayer.getAnimations().forEach(animation => animation.cancel());
+    bedoGazeTransitionLayer.remove();
+    bedoGazeTransitionLayer = null;
   }
 
-  if (hasRenderedHeroGaze && !reducedMotion.matches) {
-    const transitionLayer = heroEyeOverlay.cloneNode();
-    transitionLayer.classList.add('hero-eye-transition');
-    transitionLayer.getContext('2d').drawImage(heroEyeOverlay, 0, 0);
-    heroHeader.append(transitionLayer);
-    heroGazeTransitionLayer = transitionLayer;
+  if (hasRenderedbedoGaze && !reducedMotion.matches) {
+    const transitionLayer = bedoEyeOverlay.cloneNode();
+    transitionLayer.classList.add('bedo-eye-transition');
+    transitionLayer.getContext('2d').drawImage(bedoEyeOverlay, 0, 0);
+    bedoHeader.append(transitionLayer);
+    bedoGazeTransitionLayer = transitionLayer;
 
     const animation = transitionLayer.animate([
       { opacity: 1, filter: 'blur(0px)' },
@@ -180,13 +180,13 @@ function drawHeroGaze(image) {
     ], { duration: GAZE_TRANSITION_DURATION_MS, easing: 'ease-out' });
     animation.onfinish = () => {
       transitionLayer.remove();
-      if (heroGazeTransitionLayer === transitionLayer) heroGazeTransitionLayer = null;
+      if (bedoGazeTransitionLayer === transitionLayer) bedoGazeTransitionLayer = null;
     };
   }
 
-  context.clearRect(0, 0, heroEyeOverlay.width, heroEyeOverlay.height);
+  context.clearRect(0, 0, bedoEyeOverlay.width, bedoEyeOverlay.height);
   context.drawImage(image, 0, 0, crop.width, crop.height, crop.x, crop.y, crop.width, crop.height);
-  hasRenderedHeroGaze = true;
+  hasRenderedbedoGaze = true;
 }
 
 /**
@@ -194,22 +194,22 @@ function drawHeroGaze(image) {
  * @param {string} stateName Name of a state in the eye manifest.
  * @returns {Promise<void>} Resolves after the sprite is drawn or its load fails.
  */
-async function showHeroGaze(stateName) {
+async function showbedoGaze(stateName) {
   const isBlink = stateName === 'blink';
-  const fileName = heroEyeSettings.states[stateName];
-  if (!fileName || requestedHeroGaze === fileName) return;
+  const fileName = bedoEyeSettings.states[stateName];
+  if (!fileName || requestedbedoGaze === fileName) return;
 
   if (!isBlink) {
-    currentHeroGazeState = stateName;
-    window.clearTimeout(heroBlinkTimer);
+    currentbedoGazeState = stateName;
+    window.clearTimeout(bedoBlinkTimer);
   }
-  requestedHeroGaze = fileName;
+  requestedbedoGaze = fileName;
 
   try {
-    const image = await loadHeroGazeImage(fileName);
-    if (requestedHeroGaze !== fileName) return;
-    drawHeroGaze(image);
-    if (!isBlink) scheduleHeroBlink();
+    const image = await loadbedoGazeImage(fileName);
+    if (requestedbedoGaze !== fileName) return;
+    drawbedoGaze(image);
+    if (!isBlink) schedulebedoBlink();
   } catch (error) {
     console.error('Failed to load the header eye gaze:', error);
   }
@@ -219,22 +219,22 @@ async function showHeroGaze(stateName) {
  * Schedule a natural blink and restore the gaze afterward.
  * @returns {void}
  */
-function scheduleHeroBlink() {
-  window.clearTimeout(heroBlinkTimer);
-  if (!hasRenderedHeroGaze || document.hidden || reducedMotion.matches) return;
+function schedulebedoBlink() {
+  window.clearTimeout(bedoBlinkTimer);
+  if (!hasRenderedbedoGaze || document.hidden || reducedMotion.matches) return;
 
-  heroBlinkTimer = window.setTimeout(async () => {
-    const gazeState = currentHeroGazeState;
-    await showHeroGaze('blink');
+  bedoBlinkTimer = window.setTimeout(async () => {
+    const gazeState = currentbedoGazeState;
+    await showbedoGaze('blink');
 
-    if (requestedHeroGaze !== heroEyeSettings.states.blink) {
-      scheduleHeroBlink();
+    if (requestedbedoGaze !== bedoEyeSettings.states.blink) {
+      schedulebedoBlink();
       return;
     }
 
-    heroBlinkTimer = window.setTimeout(() => {
-      if (requestedHeroGaze === heroEyeSettings.states.blink) {
-        showHeroGaze(gazeState);
+    bedoBlinkTimer = window.setTimeout(() => {
+      if (requestedbedoGaze === bedoEyeSettings.states.blink) {
+        showbedoGaze(gazeState);
       }
     }, BLINK_HOLD_DURATION_MS);
   }, MIN_BLINK_INTERVAL_MS + Math.random() * BLINK_INTERVAL_VARIANCE_MS);
@@ -244,11 +244,11 @@ function scheduleHeroBlink() {
  * Cancel the pending blink and restore the current gaze if needed.
  * @returns {void}
  */
-function cancelHeroBlink() {
-  window.clearTimeout(heroBlinkTimer);
-  heroBlinkTimer = 0;
-  if (requestedHeroGaze === heroEyeSettings?.states.blink) {
-    showHeroGaze(currentHeroGazeState);
+function cancelbedoBlink() {
+  window.clearTimeout(bedoBlinkTimer);
+  bedoBlinkTimer = 0;
+  if (requestedbedoGaze === bedoEyeSettings?.states.blink) {
+    showbedoGaze(currentbedoGazeState);
   }
 }
 
@@ -272,29 +272,29 @@ function getObjectPositionOffset(position, availableSpace) {
  * @param {{clientX: number, clientY: number}} event Viewport coordinates.
  * @returns {string} Matching gaze state name.
  */
-function getHeroGazeState(event) {
-  const imageStyle = getComputedStyle(heroImage);
-  const imageRect = heroImage.getBoundingClientRect();
+function getbedoGazeState(event) {
+  const imageStyle = getComputedStyle(bedoImage);
+  const imageRect = bedoImage.getBoundingClientRect();
   const imageScale = Math.max(
-    imageRect.width / heroImage.naturalWidth,
-    imageRect.height / heroImage.naturalHeight
+    imageRect.width / bedoImage.naturalWidth,
+    imageRect.height / bedoImage.naturalHeight
   );
 
 
   const [positionX, positionY] = imageStyle.objectPosition.split(' ');
   const cropOffsetX = getObjectPositionOffset(
     positionX,
-    imageRect.width - heroImage.naturalWidth * imageScale
+    imageRect.width - bedoImage.naturalWidth * imageScale
   );
   const cropOffsetY = getObjectPositionOffset(
     positionY,
-    imageRect.height - heroImage.naturalHeight * imageScale
+    imageRect.height - bedoImage.naturalHeight * imageScale
   );
 
 
-  const eyesCenter = heroEyeSettings.eyes.reduce((center, eye) => ({
-    x: center.x + eye.x / heroEyeSettings.eyes.length,
-    y: center.y + eye.y / heroEyeSettings.eyes.length
+  const eyesCenter = bedoEyeSettings.eyes.reduce((center, eye) => ({
+    x: center.x + eye.x / bedoEyeSettings.eyes.length,
+    y: center.y + eye.y / bedoEyeSettings.eyes.length
   }), { x: 0, y: 0 });
   const targetX = imageRect.left + cropOffsetX + eyesCenter.x * imageScale;
   const targetY = imageRect.top + cropOffsetY + eyesCenter.y * imageScale;
@@ -329,7 +329,7 @@ function getHeroGazeState(event) {
   if (column === 0 && row === 1 && vertical < DOWN_MIDDLE_THRESHOLD) {
     return 'down-middle';
   }
-  return heroGazeDirections.get(`${column},${row}`);
+  return bedoGazeDirections.get(`${column},${row}`);
 }
 
 /**
@@ -338,11 +338,11 @@ function getHeroGazeState(event) {
  * @param {number} clientY Vertical viewport coordinate.
  * @returns {void}
  */
-function scheduleHeroGaze(clientX, clientY) {
-  if (heroGazeFrame) return;
-  heroGazeFrame = requestAnimationFrame(() => {
-    heroGazeFrame = 0;
-    showHeroGaze(getHeroGazeState({ clientX, clientY }));
+function schedulebedoGaze(clientX, clientY) {
+  if (bedoGazeFrame) return;
+  bedoGazeFrame = requestAnimationFrame(() => {
+    bedoGazeFrame = 0;
+    showbedoGaze(getbedoGazeState({ clientX, clientY }));
   });
 }
 
@@ -352,41 +352,41 @@ function scheduleHeroGaze(clientX, clientY) {
  * @returns {void}
  */
 function trackTouchGaze(event) {
-  if (!heroEyeSettings) return;
+  if (!bedoEyeSettings) return;
 
   const touch = event.touches[0];
-  if (touch) scheduleHeroGaze(touch.clientX, touch.clientY);
+  if (touch) schedulebedoGaze(touch.clientX, touch.clientY);
 }
 
 /**
  * Cancel pending gaze work and clear the overlay after touch input ends.
  * @returns {void}
  */
-function resetHeroGaze() {
-  if (heroGazeFrame) cancelAnimationFrame(heroGazeFrame);
-  heroGazeFrame = 0;
-  window.clearTimeout(heroBlinkTimer);
-  heroBlinkTimer = 0;
-  requestedHeroGaze = '';
+function resetbedoGaze() {
+  if (bedoGazeFrame) cancelAnimationFrame(bedoGazeFrame);
+  bedoGazeFrame = 0;
+  window.clearTimeout(bedoBlinkTimer);
+  bedoBlinkTimer = 0;
+  requestedbedoGaze = '';
 
-  if (heroGazeTransitionLayer) {
-    heroGazeTransitionLayer.getAnimations().forEach(animation => animation.cancel());
-    heroGazeTransitionLayer.remove();
-    heroGazeTransitionLayer = null;
+  if (bedoGazeTransitionLayer) {
+    bedoGazeTransitionLayer.getAnimations().forEach(animation => animation.cancel());
+    bedoGazeTransitionLayer.remove();
+    bedoGazeTransitionLayer = null;
   }
 
-  heroEyeOverlay.getContext('2d').clearRect(0, 0, heroEyeOverlay.width, heroEyeOverlay.height);
-  hasRenderedHeroGaze = false;
+  bedoEyeOverlay.getContext('2d').clearRect(0, 0, bedoEyeOverlay.width, bedoEyeOverlay.height);
+  hasRenderedbedoGaze = false;
 }
 
 /**
  * Refresh parallax and blink behavior when page visibility changes.
  * @returns {void}
  */
-function handleHeroVisibilityChange() {
-  scheduleHeroParallax();
-  if (document.hidden) cancelHeroBlink();
-  else scheduleHeroBlink();
+function handlebedoVisibilityChange() {
+  schedulebedoParallax();
+  if (document.hidden) cancelbedoBlink();
+  else schedulebedoBlink();
 }
 
 /**
@@ -394,9 +394,9 @@ function handleHeroVisibilityChange() {
  * @returns {void}
  */
 function handleReducedMotionChange() {
-  scheduleHeroParallax();
-  if (reducedMotion.matches) cancelHeroBlink();
-  else scheduleHeroBlink();
+  schedulebedoParallax();
+  if (reducedMotion.matches) cancelbedoBlink();
+  else schedulebedoBlink();
 }
 
 /**
@@ -404,9 +404,9 @@ function handleReducedMotionChange() {
  * @param {PointerEvent} event Pointer movement event.
  * @returns {void}
  */
-function handleHeroPointerMove(event) {
-  if (!heroEyeSettings || event.pointerType === 'touch') return;
-  scheduleHeroGaze(event.clientX, event.clientY);
+function handlebedoPointerMove(event) {
+  if (!bedoEyeSettings || event.pointerType === 'touch') return;
+  schedulebedoGaze(event.clientX, event.clientY);
 }
 
 /**
@@ -414,9 +414,9 @@ function handleHeroPointerMove(event) {
  * @param {TouchEvent} event Touch end event.
  * @returns {void}
  */
-function handleHeroTouchEnd(event) {
+function handlebedoTouchEnd(event) {
   if (event.touches.length) trackTouchGaze(event);
-  else resetHeroGaze();
+  else resetbedoGaze();
 }
 
 // Manifest and input setup.
@@ -425,19 +425,19 @@ function handleHeroTouchEnd(event) {
  * Load gaze settings and register pointer and touch handlers.
  * @returns {Promise<void>} Resolves after gaze input is initialized.
  */
-async function initializeHeroEyes() {
-  if (!heroEyeOverlay || !heroImage) return;
+async function initializebedoEyes() {
+  if (!bedoEyeOverlay || !bedoImage) return;
 
   try {
     const response = await fetch('src/about/eyes/manifest.json');
     if (!response.ok) throw new Error(`Could not load eye manifest (${response.status}).`);
-    heroEyeSettings = await response.json();
-    if (!heroImage.complete) {
-      await new Promise(resolve => heroImage.addEventListener('load', resolve, { once: true }));
+    bedoEyeSettings = await response.json();
+    if (!bedoImage.complete) {
+      await new Promise(resolve => bedoImage.addEventListener('load', resolve, { once: true }));
     }
 
-    heroEyeOverlay.width = heroImage.naturalWidth;
-    heroEyeOverlay.height = heroImage.naturalHeight;
+    bedoEyeOverlay.width = bedoImage.naturalWidth;
+    bedoEyeOverlay.height = bedoImage.naturalHeight;
   } catch (error) {
     console.error('Failed to initialize the header eyes:', error);
   }
@@ -446,22 +446,22 @@ async function initializeHeroEyes() {
 // Event registration.
 
 /**
- * Register hero scrolling, visibility, motion, and pointer handlers.
+ * Register bedo scrolling, visibility, motion, and pointer handlers.
  * @returns {void}
  */
-function registerHeroEventHandlers() {
-  window.addEventListener('scroll', scheduleHeroParallax, { passive: true });
-  landingStage.addEventListener('scroll', scheduleHeroParallax, { passive: true });
-  window.addEventListener('resize', scheduleHeroParallax, { passive: true });
-  document.addEventListener('visibilitychange', handleHeroVisibilityChange);
+function registerbedoEventHandlers() {
+  window.addEventListener('scroll', schedulebedoParallax, { passive: true });
+  landingStage.addEventListener('scroll', schedulebedoParallax, { passive: true });
+  window.addEventListener('resize', schedulebedoParallax, { passive: true });
+  document.addEventListener('visibilitychange', handlebedoVisibilityChange);
   reducedMotion.addEventListener('change', handleReducedMotionChange);
-  window.addEventListener('pointermove', handleHeroPointerMove, { passive: true });
+  window.addEventListener('pointermove', handlebedoPointerMove, { passive: true });
   window.addEventListener('touchstart', trackTouchGaze, { passive: true });
   window.addEventListener('touchmove', trackTouchGaze, { passive: true });
-  window.addEventListener('touchend', handleHeroTouchEnd, { passive: true });
-  window.addEventListener('touchcancel', resetHeroGaze, { passive: true });
-  scheduleHeroParallax();
+  window.addEventListener('touchend', handlebedoTouchEnd, { passive: true });
+  window.addEventListener('touchcancel', resetbedoGaze, { passive: true });
+  schedulebedoParallax();
 }
 
-registerHeroEventHandlers();
-initializeHeroEyes();
+registerbedoEventHandlers();
+initializebedoEyes();
