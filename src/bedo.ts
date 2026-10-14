@@ -66,6 +66,7 @@ export class BedoHeaderController {
   private requestedbedoGaze = '';
   private currentbedoGazeState = 'center';
   private bedoGazeFrame = 0;
+  private pendingbedoGaze: { clientX: number; clientY: number } | null = null;
   private bedoBlinkTimer = 0;
   private hasRenderedbedoGaze = false;
   private bedoGazeTransitionLayer: HTMLCanvasElement | null = null;
@@ -483,14 +484,19 @@ export class BedoHeaderController {
    * @param {number} clientY Vertical viewport coordinate.
    * @returns {void}
    */
-  private schedulebedoGaze(clientX: number, clientY: number): void {
-    if (this.bedoGazeFrame || this.bedoManualBlink.isActive()) {
+  private schedulebedoGaze(clientX: number, clientY: number, duringPress = false): void {
+    this.pendingbedoGaze = { clientX, clientY };
+    if (this.bedoGazeFrame || (this.bedoManualBlink.isActive() && !duringPress)) {
       return;
     }
 
     this.bedoGazeFrame = requestAnimationFrame(() => {
       this.bedoGazeFrame = 0;
-      this.showbedoGaze(this.getbedoGazeState({ clientX, clientY }));
+      const pointer = this.pendingbedoGaze;
+      this.pendingbedoGaze = null;
+      if (pointer) {
+        this.showbedoGaze(this.getbedoGazeState(pointer));
+      }
     });
   }
 
@@ -499,14 +505,14 @@ export class BedoHeaderController {
    * @param {TouchEvent} event Touch event containing active pointers.
    * @returns {void}
    */
-  private trackTouchGaze(event: TouchEvent): void {
+  private trackTouchGaze(event: TouchEvent, duringPress = false): void {
     if (!this.bedoEyeSettings) {
       return;
     }
 
     const touch = event.touches[0];
     if (touch) {
-      this.schedulebedoGaze(touch.clientX, touch.clientY);
+      this.schedulebedoGaze(touch.clientX, touch.clientY, duringPress);
     }
   }
 
@@ -519,6 +525,7 @@ export class BedoHeaderController {
       cancelAnimationFrame(this.bedoGazeFrame);
     }
     this.bedoGazeFrame = 0;
+    this.pendingbedoGaze = null;
     window.clearTimeout(this.bedoBlinkTimer);
     this.bedoManualBlink.cancel();
     this.bedoBlinkTimer = 0;
@@ -568,11 +575,11 @@ export class BedoHeaderController {
    * @returns {void}
    */
   private handlebedoPointerMove(event: PointerEvent): void {
-    if (!this.bedoEyeSettings || event.pointerType === 'touch') {
+    if (!this.bedoEyeSettings) {
       return;
     }
 
-    this.schedulebedoGaze(event.clientX, event.clientY);
+    this.schedulebedoGaze(event.clientX, event.clientY, event.pointerType === 'touch');
   }
 
   /**
@@ -582,7 +589,7 @@ export class BedoHeaderController {
    */
   private handlebedoTouchEnd(event: TouchEvent): void {
     if (event.touches.length) {
-      this.trackTouchGaze(event);
+      this.trackTouchGaze(event, true);
     } else {
       this.resetbedoGaze();
     }
@@ -647,7 +654,9 @@ export class BedoHeaderController {
       passive: true
     });
     window.addEventListener('touchstart', (event) => this.trackTouchGaze(event), { passive: true });
-    window.addEventListener('touchmove', (event) => this.trackTouchGaze(event), { passive: true });
+    window.addEventListener('touchmove', (event) => this.trackTouchGaze(event, true), {
+      passive: true
+    });
     window.addEventListener('touchend', (event) => this.handlebedoTouchEnd(event), {
       passive: true
     });

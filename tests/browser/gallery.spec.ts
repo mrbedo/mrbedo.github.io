@@ -83,6 +83,54 @@ test.beforeEach(async ({ page }) => {
   await expect(page.locator('.gallery-content > a')).toHaveCount(13);
 });
 
+test('touch pointer movement updates the header eye gaze', async ({ page }) => {
+  const canvas = page.locator('.bedo-eye-overlay:not(.bedo-eye-transition)');
+  const getGazeHash = () =>
+    canvas.evaluate((element) => {
+      const target = element as HTMLCanvasElement;
+      const pixels = target.getContext('2d')!.getImageData(0, 0, target.width, target.height).data;
+      return pixels.reduce((hash, value) => (hash * 31 + value) >>> 0, 0);
+    });
+
+  await expect
+    .poll(() =>
+      canvas.evaluate((element) => {
+        const target = element as HTMLCanvasElement;
+        const pixels = target.getContext('2d')!.getImageData(0, 0, target.width, target.height).data;
+        return pixels.some((value, index) => index % 4 === 3 && value > 0);
+      })
+    )
+    .toBe(true);
+  const initialGaze = await getGazeHash();
+
+  await page.evaluate(() => {
+    const header = document.querySelector('#gallery-header')!;
+    header.dispatchEvent(
+      new PointerEvent('pointerdown', {
+        bubbles: true,
+        pointerId: 1,
+        pointerType: 'touch',
+        isPrimary: true,
+        button: 0,
+        clientX: 0,
+        clientY: 0
+      })
+    );
+    header.dispatchEvent(
+      new PointerEvent('pointermove', {
+        bubbles: true,
+        pointerId: 1,
+        pointerType: 'touch',
+        isPrimary: true,
+        clientX: innerWidth - 1,
+        clientY: innerHeight - 1
+      })
+    );
+  });
+
+  await expect.poll(getGazeHash).not.toBe(initialGaze);
+});
+
 test.afterEach(async ({ page }, info) => {
   if (info.status !== info.expectedStatus && !page.isClosed()) {
     const layout = await page.evaluate(() => {
