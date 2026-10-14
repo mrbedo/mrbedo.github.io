@@ -67,6 +67,7 @@ test('compact layout sizes landscape and portrait artwork within the viewport', 
     naturalWidth: 1000,
     naturalHeight: 500
   });
+
   compactByHeight.controller.update();
   assert.equal(compactByHeight.viewer.dataset.artLayout, 'compact');
   assert.ok(Number.parseFloat(compactByHeight.styles.get('--compact-art-width')) > 0);
@@ -82,6 +83,43 @@ test('compact layout sizes landscape and portrait artwork within the viewport', 
   assert.equal(compactByWidth.viewer.dataset.artLayout, 'compact');
   assert.ok(Number.parseFloat(compactByWidth.styles.get('--compact-art-width')) > 0);
   assert.ok(Number.parseFloat(compactByWidth.styles.get('--compact-art-height')) > 0);
+});
+
+test('compact artwork fits its reserved area at narrow and short viewport extremes', () => {
+  for (const [viewportWidth, viewportHeight] of [
+    [240, 320],
+    [320, 240],
+    [240, 1440],
+    [600, 240],
+    [844, 390],
+    [2560, 240]
+  ]) {
+    for (const [naturalWidth, naturalHeight] of [
+      [2000, 500],
+      [500, 2000],
+      [1000, 1000]
+    ]) {
+      const layout = createLayout({ viewportWidth, viewportHeight, naturalWidth, naturalHeight });
+      layout.controller.update();
+      const width = parseFloat(layout.styles.get('--compact-art-width'));
+      const height = parseFloat(layout.styles.get('--compact-art-height'));
+      const left = parseFloat(layout.styles.get('--compact-art-left'));
+      const top = parseFloat(layout.styles.get('--compact-art-top'));
+      const edge = MathUtils.clamp(viewportWidth * 0.014, 16, 24);
+      const sideLayout = viewportWidth >= 600;
+      const maxHeight = viewportHeight - (sideLayout ? edge + 48 : 184);
+      assert.ok(width > 0 && width <= viewportWidth - 2 * edge);
+      assert.ok(height > 0 && height <= maxHeight);
+      assert.ok(left - width / 2 >= edge);
+      assert.ok(left + width / 2 <= viewportWidth - edge);
+      assert.ok(top - height / 2 >= edge);
+      assert.ok(top + height / 2 <= viewportHeight - 48);
+      assert.ok(Math.abs(width / height - naturalWidth / naturalHeight) < 0.001);
+      if (sideLayout) {
+        assert.ok(left - width / 2 >= Math.min(viewportWidth * 0.3, 320) + 2 * edge);
+      }
+    }
+  }
 });
 
 test('wide and regular layouts remove stale compact artwork dimensions', () => {

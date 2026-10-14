@@ -1,4 +1,5 @@
 import type { ReactNode, Ref } from 'react';
+import { siteText } from '../site-text.ts';
 import { InstagramLink } from './InstagramLink.tsx';
 import { BrandHeading, CopyrightNotice } from './SiteChrome.tsx';
 
@@ -22,7 +23,7 @@ export function LandingView({
           <img
             className="bedo-image"
             src="src/about/header.jpg"
-            alt="Painting of a person holding a cup of tea"
+            alt={siteText.header.imageAlt}
           />
           <canvas className="bedo-eye-overlay" aria-hidden="true" />
           <div className="header-brand">

@@ -3,6 +3,7 @@ import type { GalleryAppViewModel } from './view-models/gallery-app-view-model.t
 import { ArtworkViewer } from './components/ArtworkViewer.tsx';
 import { GallerySlideOut } from './components/GallerySlideOut.tsx';
 import { LandingView } from './components/LandingView.tsx';
+import { GalleryPullController } from './gallery-pull.ts';
 
 export function ReactGalleryApp({ viewModel }: { viewModel: GalleryAppViewModel }) {
   const appState = useSyncExternalStore(
@@ -28,7 +29,7 @@ export function ReactGalleryApp({ viewModel }: { viewModel: GalleryAppViewModel 
       return;
     }
 
-    return viewModel.start({
+    const stopApp = viewModel.start({
       stage,
       gallery,
       closeButton,
@@ -36,6 +37,12 @@ export function ReactGalleryApp({ viewModel }: { viewModel: GalleryAppViewModel 
       viewer,
       image
     });
+    const stopPull = new GalleryPullController({ stage, gallery, header }).start();
+
+    return () => {
+      stopPull();
+      stopApp();
+    };
   }, [viewModel]);
 
   const selectedEntry = viewModel.selectedEntry;

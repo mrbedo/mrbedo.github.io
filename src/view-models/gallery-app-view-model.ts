@@ -4,13 +4,14 @@ import { viewerColorManager } from '../artwork-colors.ts';
 import type { ViewerColorManager } from '../artwork-colors.ts';
 import { BedoHeaderController } from '../bedo.ts';
 import { ViewerLayoutController } from '../viewer-layout.ts';
+import { siteText } from '../site-text.ts';
 import { ObservableViewModel } from './observable-view-model.ts';
 import { GalleryViewModel } from './gallery-view-model.ts';
 import type { GalleryViewElements } from './gallery-view-model.ts';
 
 const PREVIOUS_ARTWORK_OFFSET = -1;
 const NEXT_ARTWORK_OFFSET = 1;
-const GALLERY_LOAD_ERROR = 'The gallery could not be loaded. Please try again later.';
+const GALLERY_LOAD_ERROR = siteText.gallery.loadError;
 
 export interface GalleryAppViewModelState {
   entries: ArtworkEntry[];

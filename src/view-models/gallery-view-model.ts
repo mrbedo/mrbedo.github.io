@@ -1,5 +1,7 @@
 import type { ArtworkEntry } from '../artwork-catalog.ts';
 import { ObservableViewModel } from './observable-view-model.ts';
+import { galleryDockOffset } from '../gallery-pull.ts';
+import { usesSplitGallery } from '../responsive-layout.ts';
 
 export interface GalleryViewModelState {
   expanded: boolean;
@@ -23,6 +25,7 @@ export class GalleryViewModel extends ObservableViewModel<GalleryViewModelState>
   private readonly browserWindow: Window;
   private readonly document: Document;
   private entries: ArtworkEntry[] = [];
+  private restoreFilterDock = false;
 
   constructor(browserWindow: Window = window, document: Document = window.document) {
     super({
@@ -40,6 +43,7 @@ export class GalleryViewModel extends ObservableViewModel<GalleryViewModelState>
     const years = [...new Set(entries.map((entry) => entry.placard.year).filter(Boolean))].sort(
       (first, second) => first.localeCompare(second, undefined, { numeric: true })
     );
+
     const selectedYears = this.state.selectedYears.filter((year) => years.includes(year));
     this.updateState({
       years,
@@ -54,10 +58,45 @@ export class GalleryViewModel extends ObservableViewModel<GalleryViewModelState>
     }
 
     const nextSelectedYears = this.state.selectedYears.includes(year) ? [] : [year];
+    // Filter controls are only offered when docked. Native focus/scrollIntoView can
+    // move a sticky toolbar first, so the filter action must restore its own dock.
+    this.restoreFilterDock = Boolean(
+      this.gallery && !this.header?.hidden && (!this.isLandscape() || this.state.expanded)
+    );
+
     this.updateState({
       selectedYears: nextSelectedYears,
       visibleEntries: this.filterEntries(nextSelectedYears)
     });
+  }
+
+  /** Reconcile after React commits the filtered tiles, not against the old page height. */
+  reconcileLayout(): void {
+    if (!this.restoreFilterDock) {
+      return;
+    }
+
+    this.restoreFilterDock = false;
+    if (!this.gallery || this.header?.hidden) {
+      return;
+    }
+
+    const content = this.gallery.querySelector<HTMLElement>('.gallery-content');
+    if (content) {
+      content.scrollTop = 0;
+    }
+
+    if (this.isLandscape()) {
+      this.scrollStage(this.getExpandedScrollTop(), 'auto');
+    } else {
+      this.browserWindow.scrollTo({
+        top: Math.max(
+          0,
+          this.gallery.offsetTop - galleryDockOffset(this.gallery, this.browserWindow)
+        ),
+        behavior: 'auto'
+      });
+    }
   }
 
   start({ stage, gallery, closeButton, header }: GalleryViewElements): () => void {
@@ -94,15 +133,17 @@ export class GalleryViewModel extends ObservableViewModel<GalleryViewModelState>
       this.document.removeEventListener('keydown', onKeyDown);
       this.document.removeEventListener('pointerdown', onPointerDown);
       resizeTarget.removeEventListener('resize', onResize);
-      
+
       this.stage = null;
       this.gallery = null;
       this.closeButton = null;
       this.header = null;
+      this.restoreFilterDock = false;
     };
   }
 
   close(): void {
+    this.restoreFilterDock = false;
     if (this.isLandscape()) {
       this.collapse();
     } else {
@@ -110,10 +151,23 @@ export class GalleryViewModel extends ObservableViewModel<GalleryViewModelState>
     }
   }
 
+  reveal(): void {
+    if (this.isLandscape()) {
+      this.expand();
+      return;
+    }
+
+    this.gallery?.scrollIntoView({
+      behavior: this.browserWindow.matchMedia('(prefers-reduced-motion: reduce)').matches
+        ? 'auto'
+        : 'smooth'
+    });
+  }
+
   private isLandscape(): boolean {
     return (
       Boolean(this.stage && this.gallery && this.closeButton && this.header) &&
-      this.browserWindow.matchMedia('(orientation: landscape)').matches &&
+      usesSplitGallery(this.browserWindow) &&
       !this.header?.hidden
     );
   }
@@ -173,7 +227,8 @@ export class GalleryViewModel extends ObservableViewModel<GalleryViewModelState>
   }
 
   private handleWheel(event: WheelEvent): void {
-    if (!this.isLandscape() || (event.target && this.gallery?.contains(event.target as Node))) {
+    const insideGallery = Boolean(event.target && this.gallery?.contains(event.target as Node));
+    if (!this.isLandscape() || (insideGallery && this.state.expanded)) {
       return;
     }
 

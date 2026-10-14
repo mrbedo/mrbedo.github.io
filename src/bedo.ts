@@ -1,4 +1,5 @@
 import { MathUtils } from './math-utils.ts';
+import { usesSplitGallery } from './responsive-layout.ts';
 import { BlinkBehavior, ManualBlinkController } from './interaction-behavior.ts';
 
 const MIN_SCROLL_RANGE_PX = 1;
@@ -93,7 +94,7 @@ export class BedoHeaderController {
       return;
     }
 
-    const landscape = window.matchMedia('(orientation: landscape)').matches;
+    const landscape = usesSplitGallery(window);
     const maxPageScroll = Math.max(
       document.documentElement.scrollHeight - window.innerHeight,
       MIN_SCROLL_RANGE_PX

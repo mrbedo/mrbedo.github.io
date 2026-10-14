@@ -1,6 +1,15 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { GalleryAppViewModel } from '../src/view-models/gallery-app-view-model.ts';
+import { formatText, siteText } from '../src/site-text.ts';
+
+test('configured site text fills placeholders and leaves unknown ones intact', () => {
+  assert.equal(
+    formatText(siteText.footer.copyright, { year: 2031 }),
+    'Copyright © 2031 Bedoworks.'
+  );
+  assert.equal(formatText('{name} by {artist}', { name: 'Kon Seré' }), 'Kon Seré by {artist}');
+});
 
 const entries = [
   {
@@ -249,7 +258,7 @@ test('app viewmodel reports current catalog failures and ignores stale failures'
     const failed = buildAppHarness({ load: async () => { throw new Error('offline'); } });
     const stopFailed = failed.viewModel.start(failed.elements);
     await flushPromises();
-    assert.equal(failed.viewModel.getSnapshot().loadError, 'The gallery could not be loaded. Please try again later.');
+    assert.equal(failed.viewModel.getSnapshot().loadError, siteText.gallery.loadError);
     assert.equal(errors.length, 1);
     stopFailed();
 

@@ -5,6 +5,7 @@ import { ArtworkCatalog } from '../src/artwork-catalog.ts';
 import { BlinkBehavior, ManualBlinkController } from '../src/interaction-behavior.ts';
 import { GalleryAppViewModel } from '../src/view-models/gallery-app-view-model.ts';
 import { GalleryViewModel } from '../src/view-models/gallery-view-model.ts';
+import { GalleryPullController } from '../src/gallery-pull.ts';
 
 class TestTarget {
   listeners = new Map();
@@ -20,6 +21,7 @@ class TestTarget {
       type,
       (this.listeners.get(type) ?? []).filter((registered) => registered !== listener)
     );
+
   }
 
   dispatch(type, event = {}) {
@@ -60,9 +62,19 @@ function createFakeClock() {
   };
 }
 
-function createGalleryInteractions({ landscape = true, reducedMotion = false, visualViewport = false } = {}) {
+function createGalleryInteractions({
+  landscape = true,
+  reducedMotion = false,
+  visualViewport = false
+} = {}) {
   const document = new TestTarget();
   const gallery = new TestTarget();
+  gallery.offsetTop = 844;
+  gallery.querySelector = () => null;
+  gallery.scrollIntoViewCalls = [];
+  gallery.scrollIntoView = function (options) {
+    this.scrollIntoViewCalls.push(options);
+  };
   const closeButton = new TestTarget();
   closeButton.parent = gallery;
   const stage = {
@@ -80,6 +92,8 @@ function createGalleryInteractions({ landscape = true, reducedMotion = false, vi
   const windowScrollToCalls = [];
   const media = { landscape, reducedMotion };
   const window = {
+    scrollY: 0,
+    getComputedStyle: () => ({ top: '6px' }),
     addEventListener(type, listener) {
       const listeners = windowListeners.get(type) ?? [];
       listeners.push(listener);
@@ -90,6 +104,7 @@ function createGalleryInteractions({ landscape = true, reducedMotion = false, vi
         type,
         (windowListeners.get(type) ?? []).filter((registered) => registered !== listener)
       );
+
     },
     dispatch(type) {
       for (const listener of windowListeners.get(type) ?? []) {
@@ -98,6 +113,7 @@ function createGalleryInteractions({ landscape = true, reducedMotion = false, vi
     },
     scrollTo(options) {
       windowScrollToCalls.push(options);
+      this.scrollY = options.top;
     },
     matchMedia(query) {
       return { matches: query.includes('orientation') ? media.landscape : media.reducedMotion };
@@ -239,6 +255,90 @@ test('gallery pointer presses and any key fully expand it', () => {
   assert.deepEqual(stage.scrollToCalls[1], { top: 900, behavior: 'smooth' });
 });
 
+test('the gallery cue expands the gallery in landscape', () => {
+  const { gallery, stage, viewModel } = createGalleryInteractions();
+
+  viewModel.reveal();
+
+  assert.equal(viewModel.getSnapshot().expanded, true);
+  assert.deepEqual(stage.scrollToCalls, [{ top: 900, behavior: 'smooth' }]);
+  assert.deepEqual(gallery.scrollIntoViewCalls, []);
+});
+
+test('the gallery cue scrolls to the gallery in portrait and respects reduced motion', () => {
+  const { gallery, stage, viewModel, window, document } = createGalleryInteractions({
+    landscape: false,
+    reducedMotion: true
+  });
+
+  viewModel.reveal();
+
+  assert.deepEqual(gallery.scrollIntoViewCalls, [{ behavior: 'auto' }]);
+  assert.deepEqual(stage.scrollToCalls, []);
+
+  assert.doesNotThrow(() => new GalleryViewModel(window, document).reveal());
+  const animated = createGalleryInteractions({ landscape: false });
+  animated.viewModel.reveal();
+  assert.deepEqual(animated.gallery.scrollIntoViewCalls, [{ behavior: 'smooth' }]);
+});
+
+test('scrolling down over the peeking gallery header expands it instead of scrolling natively', () => {
+  const { document, gallery, stage, viewModel } = createGalleryInteractions();
+  let prevented = 0;
+  const wheelEvent = (deltaY) => ({
+    deltaY,
+    target: { parent: gallery },
+    preventDefault() {
+      prevented += 1;
+    }
+  });
+
+  document.dispatch('wheel', wheelEvent(-1));
+  assert.deepEqual(stage.scrollToCalls, []);
+
+  document.dispatch('wheel', wheelEvent(1));
+
+  assert.equal(viewModel.getSnapshot().expanded, true);
+  assert.deepEqual(stage.scrollToCalls, [{ top: 900, behavior: 'smooth' }]);
+  assert.equal(prevented, 1);
+});
+
+test('gallery pull progress clamps to the travel range and treats no range as docked', () => {
+  assert.equal(GalleryPullController.progress(0, 800), 0);
+  assert.equal(GalleryPullController.progress(400, 800), 0.5);
+  assert.equal(GalleryPullController.progress(900, 800), 1);
+  assert.equal(GalleryPullController.progress(-20, 800), 0);
+  assert.equal(GalleryPullController.progress(0, 0), 1);
+});
+
+test('gallery paintings trail the header and ease onto their target without bouncing', () => {
+  let position = 0;
+  const target = 400;
+  const positions = [];
+  for (let frame = 0; frame < 120 && !GalleryPullController.isSettled(position, target); frame++) {
+    position = GalleryPullController.follow(position, target, 1000 / 60);
+    positions.push(position);
+  }
+
+  assert.ok(positions[0] > 0 && positions[0] < target / 2, 'first frame lags behind');
+  assert.ok(
+    positions.every(
+      (value, index) => value <= target && (index === 0 || value > positions[index - 1])
+    ),
+    'approaches monotonically and never overshoots'
+  );
+
+  assert.ok(GalleryPullController.isSettled(position, target), 'settles');
+  assert.ok(positions.length < 120);
+  assert.ok(GalleryPullController.follow(0, target, 10_000) <= target, 'long frames are clamped');
+  assert.equal(GalleryPullController.follow(0, target, -5), 0);
+  assert.ok(
+    GalleryPullController.follow(0, target, 16, 45) > GalleryPullController.follow(0, target, 16),
+    'shorter time constants catch up faster'
+  );
+
+});
+
 test('scrolling down opens the gallery and scrolling up closes it', () => {
   const { document, stage } = createGalleryInteractions();
   let prevented = 0;
@@ -360,6 +460,7 @@ test('gallery year filter selects one year or clears to all entries', () => {
     viewModel.getSnapshot().visibleEntries.map((entry) => entry.name),
     ['2025_first']
   );
+
   document.dispatch('pointerdown', { target: { parent: gallery } });
   assert.deepEqual(viewModel.getSnapshot().selectedYears, ['2025']);
 
@@ -373,6 +474,74 @@ test('gallery year filter selects one year or clears to all entries', () => {
   viewModel.toggleYear('2026');
   assert.deepEqual(viewModel.getSnapshot().selectedYears, []);
   assert.equal(viewModel.getSnapshot().visibleEntries.length, 3);
+});
+
+test('filtering a docked portrait gallery restores the dock after the DOM changes', () => {
+  const { gallery, window, viewModel, windowScrollToCalls } = createGalleryInteractions({
+    landscape: false
+  });
+  gallery.querySelector = () => ({});
+  viewModel.setEntries([{ name: 'one', placard: { year: '2025' } }]);
+  window.scrollY = 900;
+  viewModel.toggleYear('2025');
+  assert.equal(windowScrollToCalls.length, 0, 'waits for the committed layout');
+  window.scrollY = 750;
+  viewModel.reconcileLayout();
+  assert.deepEqual(windowScrollToCalls, [{ top: 838, behavior: 'auto' }]);
+  viewModel.reconcileLayout();
+  assert.equal(windowScrollToCalls.length, 1, 'does not repeatedly reposition the page');
+});
+
+test('filters do not move a hidden or unstarted gallery', () => {
+  const { viewModel, header, windowScrollToCalls } = createGalleryInteractions({
+    landscape: false
+  });
+  header.hidden = true;
+  viewModel.setEntries([{ name: 'one', placard: { year: '2025' } }]);
+  viewModel.toggleYear('2025');
+  viewModel.reconcileLayout();
+  assert.equal(windowScrollToCalls.length, 0);
+  const unstarted = new GalleryViewModel({}, {});
+  unstarted.setEntries([{ name: 'one', placard: { year: '2025' } }]);
+  unstarted.toggleYear('2025');
+  unstarted.reconcileLayout();
+  assert.deepEqual(unstarted.getSnapshot().selectedYears, ['2025']);
+});
+
+test('filtering an expanded landscape gallery resets its content scroll but keeps it expanded', () => {
+  const { viewModel, stage, gallery } = createGalleryInteractions();
+  const content = { scrollTop: 400 };
+  gallery.querySelector = () => content;
+  viewModel.setEntries([{ name: 'one', placard: { year: '2025' } }]);
+  viewModel.reveal();
+  viewModel.toggleYear('2025');
+  stage.scrollHeight = 1700;
+  viewModel.reconcileLayout();
+  assert.equal(content.scrollTop, 0);
+  assert.equal(stage.scrollTop, 800);
+  assert.equal(viewModel.getSnapshot().expanded, true);
+});
+
+test('pending filter docking is cancelled when the viewer opens before reconciliation', () => {
+  const { viewModel, header, windowScrollToCalls } = createGalleryInteractions({
+    landscape: false
+  });
+  viewModel.setEntries([{ name: 'one', placard: { year: '2025' } }]);
+  viewModel.toggleYear('2025');
+  header.hidden = true;
+  viewModel.reconcileLayout();
+  header.hidden = false;
+  viewModel.reconcileLayout();
+  assert.equal(windowScrollToCalls.length, 0);
+});
+
+test('filtering a collapsed split gallery does not expand or scroll it', () => {
+  const { viewModel, stage } = createGalleryInteractions();
+  viewModel.setEntries([{ name: 'one', placard: { year: '2025' } }]);
+  viewModel.toggleYear('2025');
+  viewModel.reconcileLayout();
+  assert.equal(stage.scrollTop, 0);
+  assert.equal(viewModel.getSnapshot().expanded, false);
 });
 
 test('gallery viewmodel publishes expansion state to subscribed views', () => {
@@ -556,15 +725,22 @@ test('gallery filtering ignores unknown years and drops unavailable selections',
   viewModel.toggleYear('2025');
   viewModel.setEntries([{ name: '2026_art', placard: { year: '2026' } }]);
   assert.deepEqual(viewModel.getSnapshot().selectedYears, []);
-  assert.deepEqual(viewModel.getSnapshot().visibleEntries.map((entry) => entry.name), [
-    '2026_art'
-  ]);
+  assert.deepEqual(
+    viewModel.getSnapshot().visibleEntries.map((entry) => entry.name),
+    ['2026_art']
+  );
+
 });
 
 test('gallery leaves native scrolling at the bottom and avoids redundant resize work', () => {
   const { document, stage, window } = createGalleryInteractions();
   let prevented = 0;
-  const wheel = () => ({ deltaY: 1, preventDefault() { prevented++; } });
+  const wheel = () => ({
+    deltaY: 1,
+    preventDefault() {
+      prevented++;
+    }
+  });
 
   document.dispatch('wheel', wheel());
   stage.scrollTop = 0;

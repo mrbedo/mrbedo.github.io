@@ -1,3 +1,3 @@
-﻿Where is my food?
+﻿Where's my food?
 Oil on Canvas 36” x 24”
 2026

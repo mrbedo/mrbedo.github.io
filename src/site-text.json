@@ -1,0 +1,38 @@
+{
+  "site": {
+    "title": "Bedoworks",
+    "brand": "BEDOWORKS",
+    "brandLabel": "Bedoworks",
+    "homeLabel": "Bedoworks home"
+  },
+  "header": {
+    "imageAlt": "Painting of a person holding a cup of tea"
+  },
+  "instagram": {
+    "url": "https://www.instagram.com/yourmomspilledpaintintheattic",
+    "handle": "yourmomspilledpaintintheattic",
+    "label": "Bedoworks on Instagram"
+  },
+  "gallery": {
+    "label": "Artwork gallery",
+    "heading": "Gallery",
+    "yearFiltersLabel": "Filter gallery by year",
+    "closeLabel": "Close gallery",
+    "closeSymbol": "×",
+    "loadError": "The gallery could not be loaded. Please try again later."
+  },
+  "viewer": {
+    "closeLabel": "Close",
+    "closeSymbol": "×",
+    "previousLabel": "Previous artwork",
+    "previousSymbol": "←",
+    "nextLabel": "Next artwork",
+    "nextSymbol": "→",
+    "showFullscreenLabel": "Show fullscreen artwork: {name}",
+    "exitFullscreenLabel": "Exit fullscreen artwork: {name}"
+  },
+  "footer": {
+    "copyright": "Copyright © {year} Bedoworks.",
+    "rights": "All rights reserved."
+  }
+}

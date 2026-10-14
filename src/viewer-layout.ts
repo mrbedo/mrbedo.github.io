@@ -4,11 +4,15 @@ const COMPACT_VIEWPORT_MAX_HEIGHT_PX = 480;
 const COMPACT_VIEWPORT_MAX_WIDTH_PX = 300;
 const WIDE_VIEWPORT_MAX_WIDTH_PX = 600;
 const COMPACT_LAYOUT_MAX_WIDTH_PX = 900;
-const LANDSCAPE_ASPECT_RATIO = 1;
 const VIEWPORT_EDGE_INSET_RATIO = 0.014;
 const MIN_VIEWER_EDGE_INSET_REM = 1;
 const MAX_VIEWER_EDGE_INSET_REM = 1.5;
-const MIN_COMPACT_ARTWORK_SIZE_REM = 11.25;
+const COMPACT_VERTICAL_INSET_REM = 11.5;
+const COMPACT_SIDE_LAYOUT_MIN_WIDTH_PX = 600;
+const COMPACT_SIDE_RAIL_WIDTH_RATIO = 0.3;
+const COMPACT_SIDE_RAIL_MAX_WIDTH_REM = 20;
+const COMPACT_FOOTER_INSET_REM = 3;
+const COMPACT_ART_VERTICAL_OFFSET_REM = 2.25;
 const COMPACT_NAVIGATION_WIDTH_REM = 7;
 const REGULAR_NAVIGATION_WIDTH_REM = 8;
 const COMPACT_SIDE_RAILS_WIDTH_REM = 16;
@@ -61,9 +65,22 @@ export class ViewerLayoutController {
         MAX_VIEWER_EDGE_INSET_REM * rem
       );
 
-      const availableWidth = browserWindow.innerWidth - VIEWPORT_EDGE_COUNT * edgeInset;
-      const availableHeight = browserWindow.innerHeight - VIEWPORT_EDGE_COUNT * edgeInset;
-      const aspectRatio = image.naturalWidth / image.naturalHeight;
+      const sideLayout = browserWindow.innerWidth >= COMPACT_SIDE_LAYOUT_MIN_WIDTH_PX;
+      const rail = Math.min(
+        browserWindow.innerWidth * COMPACT_SIDE_RAIL_WIDTH_RATIO,
+        COMPACT_SIDE_RAIL_MAX_WIDTH_REM * rem
+      );
+
+      const availableWidth = browserWindow.innerWidth -
+        (sideLayout ? rail + 3 * edgeInset : VIEWPORT_EDGE_COUNT * edgeInset);
+      const availableHeight = Math.max(
+        1,
+        browserWindow.innerHeight -
+          (sideLayout
+            ? edgeInset + COMPACT_FOOTER_INSET_REM * rem
+            : COMPACT_VERTICAL_INSET_REM * rem)
+      );
+
       const scaleToFit = MathUtils.fitScale(
         image.naturalWidth,
         image.naturalHeight,
@@ -71,20 +88,29 @@ export class ViewerLayoutController {
         availableHeight
       );
 
-      const minimumScale = (MIN_COMPACT_ARTWORK_SIZE_REM * rem) /
-        (aspectRatio >= LANDSCAPE_ASPECT_RATIO ? image.naturalHeight : image.naturalWidth);
-      const scale = Math.min(
-        Math.max(scaleToFit, minimumScale),
-        availableHeight / image.naturalHeight
+      image.style.setProperty('--compact-art-width', `${image.naturalWidth * scaleToFit}px`);
+      image.style.setProperty('--compact-art-height', `${image.naturalHeight * scaleToFit}px`);
+      image.style.setProperty(
+        '--compact-art-left',
+        `${(browserWindow.innerWidth + (sideLayout ? rail + edgeInset : 0)) / 2}px`
       );
 
-      image.style.setProperty('--compact-art-width', `${image.naturalWidth * scale}px`);
-      image.style.setProperty('--compact-art-height', `${image.naturalHeight * scale}px`);
+      image.style.setProperty(
+        '--compact-art-top',
+        `${
+          sideLayout
+            ? (browserWindow.innerHeight + edgeInset - COMPACT_FOOTER_INSET_REM * rem) / 2
+            : browserWindow.innerHeight / 2 - COMPACT_ART_VERTICAL_OFFSET_REM * rem
+        }px`
+      );
+
       return;
     }
 
     image.style.removeProperty('--compact-art-width');
     image.style.removeProperty('--compact-art-height');
+    image.style.removeProperty('--compact-art-left');
+    image.style.removeProperty('--compact-art-top');
 
     if (browserWindow.innerWidth <= WIDE_VIEWPORT_MAX_WIDTH_PX) {
       viewer.dataset.artLayout = 'wide';

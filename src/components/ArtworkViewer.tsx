@@ -1,5 +1,6 @@
 import type { KeyboardEvent, Ref } from 'react';
 import type { ArtworkEntry } from '../artwork-catalog.ts';
+import { formatText, siteText } from '../site-text.ts';
 import type { GalleryAppViewModel } from '../view-models/gallery-app-view-model.ts';
 import { InstagramLink } from './InstagramLink.tsx';
 import { BrandHeading, CopyrightNotice } from './SiteChrome.tsx';
@@ -39,7 +40,7 @@ export function ArtworkViewer({
         <a
           className="home-link"
           href="./"
-          aria-label="Bedoworks home"
+          aria-label={siteText.site.homeLabel}
           onClick={(event) => {
             event.preventDefault();
             viewModel.closeViewer();
@@ -49,16 +50,21 @@ export function ArtworkViewer({
         </a>
         <InstagramLink />
       </div>
-      <button id="close" type="button" aria-label="Close" onClick={() => viewModel.closeViewer()}>
-        &times;
+      <button
+        id="close"
+        type="button"
+        aria-label={siteText.viewer.closeLabel}
+        onClick={() => viewModel.closeViewer()}
+      >
+        {siteText.viewer.closeSymbol}
       </button>
       <button
         id="prev"
         type="button"
-        aria-label="Previous artwork"
+        aria-label={siteText.viewer.previousLabel}
         onClick={() => viewModel.moveArtwork(-1)}
       >
-        &larr;
+        {siteText.viewer.previousSymbol}
       </button>
       <figure>
         <figcaption className="placard">
@@ -74,7 +80,10 @@ export function ArtworkViewer({
           role="button"
           tabIndex={0}
           aria-pressed={imageOnly}
-          aria-label={`${imageOnly ? 'Exit' : 'Show'} fullscreen artwork: ${entry?.name ?? ''}`}
+          aria-label={formatText(
+            imageOnly ? siteText.viewer.exitFullscreenLabel : siteText.viewer.showFullscreenLabel,
+            { name: entry?.name ?? '' }
+          )}
           onClick={() => viewModel.toggleImageOnly()}
           onKeyDown={handleImageKeyDown}
           onLoad={(event) => viewModel.onArtworkLoad(event.currentTarget)}
@@ -83,10 +92,10 @@ export function ArtworkViewer({
       <button
         id="next"
         type="button"
-        aria-label="Next artwork"
+        aria-label={siteText.viewer.nextLabel}
         onClick={() => viewModel.moveArtwork(1)}
       >
-        &rarr;
+        {siteText.viewer.nextSymbol}
       </button>
       <CopyrightNotice />
     </section>
