@@ -443,6 +443,16 @@ test('gallery movement is inactive outside the landscape gallery view', () => {
   assert.deepEqual(stage.scrollToCalls, []);
 });
 
+test('landing branding stays sticky without a header scroll container trapping it', () => {
+  const stylesheet = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
+  const headerRule = stylesheet.match(/#gallery-header\s*\{([^}]*)\}/)?.[1] ?? '';
+  const brandRule = stylesheet.match(/#gallery-header \.header-brand\s*\{([^}]*)\}/)?.[1] ?? '';
+
+  assert.match(headerRule, /overflow:\s*clip/);
+  assert.match(brandRule, /position:\s*sticky/);
+  assert.match(brandRule, /top:\s*var\(--edge-inset\)/);
+});
+
 test('viewer navigation controls remain tappable above the artwork', () => {
   const stylesheet = readFileSync(new URL('../style.css', import.meta.url), 'utf8');
   const controlsRule = stylesheet.match(/#viewer button,\s*#close\s*\{([^}]*)\}/)?.[1] ?? '';
