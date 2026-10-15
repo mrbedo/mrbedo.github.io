@@ -11,6 +11,8 @@ Run `npm run test:core-coverage` for 100% line, branch, and function coverage of
 
 React components use PascalCase names and filenames; other source modules use kebab-case. Pull requests to `main` run tests and build checks. Pushes to `main` publish `dist/` to GitHub Pages through `.github/workflows/deploy.yml`. In the repository settings, set Pages **Build and deployment** source to **GitHub Actions** to enable publishing.
 
+The deployment workflow generates a UTC build version in `YYYY.MM.DD.HHMMSS` format and stamps the generated `dist/index.html` with `<meta name="build-version" content="<version>">` before uploading it. Release branch deployments use that same version for the release tag. Inspect the deployed page source or run `document.querySelector('meta[name="build-version"]').content` in the browser console to identify its version. Local builds do not include this tag.
+
 ## Architecture
 
 Application and gallery state live in `src/view-models/`. React components in `src/components/` subscribe to viewmodel snapshots and send user actions back to the viewmodels; they contain presentation markup rather than application state.

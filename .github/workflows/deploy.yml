@@ -20,6 +20,8 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.build-version.outputs.version }}
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
@@ -41,6 +43,26 @@ jobs:
 
       - name: Build site
         run: npm run build
+
+      - name: Stamp build version
+        id: build-version
+        run: |
+          export BUILD_VERSION="$(date -u '+%Y.%m.%d.%H%M%S')"
+          echo "version=$BUILD_VERSION" >> "$GITHUB_OUTPUT"
+          node --input-type=module <<'NODE'
+          import { readFileSync, writeFileSync } from 'node:fs';
+
+          const version = process.env.BUILD_VERSION;
+          if (!/^\d{4}\.\d{2}\.\d{2}\.\d{6}$/.test(version ?? '')) {
+            throw new Error('BUILD_VERSION must use YYYY.MM.DD.HHMMSS format');
+          }
+          const path = 'dist/index.html';
+          const html = readFileSync(path, 'utf8');
+          if (html.split('</head>').length !== 2) {
+            throw new Error('Built index.html must contain exactly one closing head tag');
+          }
+          writeFileSync(path, html.replace('</head>', `<meta name="build-version" content="${version}">\n</head>`));
+          NODE
 
       - name: Upload Pages artifact
         if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/heads/release/'))
@@ -72,9 +94,10 @@ jobs:
 
       - name: Tag deployed release
         if: startsWith(github.ref, 'refs/heads/release/')
+        env:
+          BUILD_VERSION: ${{ needs.build.outputs.version }}
         run: |
-          tag="$(date '+%Y.%m.%d.%H%M%S')"
           git config user.name github-actions[bot]
           git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git tag -a "$tag" -m "Release $tag"
-          git push origin "refs/tags/$tag"
+          git tag -a "$BUILD_VERSION" -m "Release $BUILD_VERSION"
+          git push origin "refs/tags/$BUILD_VERSION"
